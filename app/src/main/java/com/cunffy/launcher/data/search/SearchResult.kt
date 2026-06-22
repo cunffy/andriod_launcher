@@ -8,11 +8,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 enum class SearchResultType(val rank: Int) {
     ANSWER(0),
     APP(1),
-    CONTACT(2),
-    SETTING(3),
-    COMMAND(4),
-    FILE(5),
-    WEB(6),
+    NOTE(2),
+    CONTACT(3),
+    INTEGRATION(4),
+    SETTING(5),
+    COMMAND(6),
+    FILE(7),
+    WEB(8),
 }
 
 /** An icon backed either by a loaded [Drawable] (apps/files) or a Compose [ImageVector]. */

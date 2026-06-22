@@ -18,6 +18,9 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         vectorDrawables { useSupportLibrary = true }
+
+        // Default remote update manifest URL (overridable at runtime in Settings).
+        buildConfigField("String", "UPDATE_MANIFEST_URL", "\"\"")
     }
 
     buildTypes {
@@ -41,6 +44,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {

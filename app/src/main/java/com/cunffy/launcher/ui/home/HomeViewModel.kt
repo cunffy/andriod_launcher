@@ -65,9 +65,10 @@ class HomeViewModel @Inject constructor(
         homeLayoutRepository.mergeIntoFolder(dragged, target)
     }
 
-    fun addWidget(widgetId: Int, spanX: Int, spanY: Int, cellX: Int, cellY: Int) = viewModelScope.launch {
-        homeLayoutRepository.addWidget(widgetId, spanX, spanY, cellX, cellY)
-    }
+    fun addWidget(widgetId: Int, spanX: Int, spanY: Int, cellX: Int, cellY: Int, page: Int) =
+        viewModelScope.launch {
+            homeLayoutRepository.addWidget(widgetId, spanX, spanY, cellX, cellY, page)
+        }
 
     fun renameFolder(folderId: Long, title: String) = viewModelScope.launch {
         homeLayoutRepository.renameFolder(folderId, title)

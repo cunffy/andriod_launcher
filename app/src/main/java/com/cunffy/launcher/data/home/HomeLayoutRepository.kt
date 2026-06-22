@@ -57,7 +57,14 @@ class HomeLayoutRepository @Inject constructor(
             ),
         )
 
-    suspend fun addWidget(widgetId: Int, spanX: Int, spanY: Int, cellX: Int, cellY: Int): Long =
+    suspend fun addWidget(
+        widgetId: Int,
+        spanX: Int,
+        spanY: Int,
+        cellX: Int,
+        cellY: Int,
+        page: Int = 0,
+    ): Long =
         dao.insertItem(
             HomeItemEntity(
                 type = HomeItemType.WIDGET,
@@ -66,6 +73,7 @@ class HomeLayoutRepository @Inject constructor(
                 spanY = spanY,
                 cellX = cellX,
                 cellY = cellY,
+                page = page,
             ),
         )
 

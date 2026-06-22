@@ -38,7 +38,10 @@ import com.cunffy.launcher.gesture.GestureSlot
 import com.cunffy.launcher.gesture.NotificationShade
 import com.cunffy.launcher.ui.drawer.AppDrawerScreen
 import com.cunffy.launcher.ui.home.HomeScreen
+import com.cunffy.launcher.ui.onboarding.OnboardingScreen
 import com.cunffy.launcher.ui.settings.SettingsActivity
+import com.cunffy.launcher.ui.update.UpdateHost
+import com.cunffy.launcher.ui.update.UpdateViewModel
 import android.content.Intent
 import kotlinx.coroutines.launch
 
@@ -55,6 +58,7 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val onboardingComplete by viewModel.onboardingComplete.collectAsStateWithLifecycle()
     var heightPx by remember { mutableFloatStateOf(0f) }
     // 1f = closed, 0f = open. Animatable so drag (snapTo) and settle (animateTo) share state.
     val progress = remember { Animatable(1f) }
@@ -153,6 +157,16 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
                     )
                 }
             }
+        }
+
+        // In-app update prompt (checks once per process for a newer build).
+        val updateViewModel: UpdateViewModel = hiltViewModel()
+        LaunchedEffect(Unit) { updateViewModel.checkOnLaunch() }
+        UpdateHost(viewModel = updateViewModel)
+
+        // First-run onboarding overlays everything until completed.
+        if (onboardingComplete == false) {
+            OnboardingScreen()
         }
     }
 }

@@ -12,6 +12,7 @@ import com.cunffy.launcher.data.icons.IconPackInfo
 import com.cunffy.launcher.data.icons.IconPackRepository
 import com.cunffy.launcher.data.prefs.LauncherPreferences
 import com.cunffy.launcher.data.prefs.LauncherSettings
+import com.cunffy.launcher.data.update.UpdateRepository
 import com.cunffy.launcher.gesture.GestureAction
 import com.cunffy.launcher.gesture.GestureSlot
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,6 +33,7 @@ class SettingsViewModel @Inject constructor(
     private val iconPackRepository: IconPackRepository,
     private val customizationRepository: CustomizationRepository,
     private val backupManager: BackupManager,
+    private val updateRepository: UpdateRepository,
     appCatalog: AppCatalog,
 ) : ViewModel() {
 
@@ -81,5 +83,20 @@ class SettingsViewModel @Inject constructor(
             context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
         }
         if (text != null) backupManager.import(text)
+    }
+
+    fun setUpdateUrl(url: String) = viewModelScope.launch {
+        preferences.setUpdateUrl(url)
+    }
+
+    fun checkForUpdates(onMessage: (String) -> Unit) = viewModelScope.launch {
+        val manifest = updateRepository.checkForUpdate()
+        if (manifest == null) {
+            onMessage("You're on the latest version")
+            return@launch
+        }
+        onMessage("Downloading ${manifest.versionName}…")
+        val apk = updateRepository.downloadApk(manifest)
+        if (apk != null) updateRepository.installApk(apk) else onMessage("Download failed")
     }
 }

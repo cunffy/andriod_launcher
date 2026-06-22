@@ -52,4 +52,12 @@
 
     <!-- At a glance -->
     <string name="glance_no_events">No upcoming events</string>
+
+    <!-- Notes -->
+    <string name="notes_title">Notes</string>
+
+    <!-- Settings: updates -->
+    <string name="settings_updates">Updates</string>
+    <string name="settings_update_url">Update manifest URL</string>
+    <string name="settings_check_updates">Check for updates</string>
 </resources>

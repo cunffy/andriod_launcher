@@ -1,6 +1,6 @@
 package com.cunffy.launcher.di
 
-import com.cunffy.launcher.data.glance.NoopWeatherProvider
+import com.cunffy.launcher.data.glance.OpenMeteoWeatherProvider
 import com.cunffy.launcher.data.glance.WeatherProvider
 import dagger.Binds
 import dagger.Module
@@ -12,8 +12,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 abstract class AppModule {
 
-    /** Swap [NoopWeatherProvider] for a network-backed implementation to enable weather. */
+    /** Open-Meteo (key-less) weather; falls back to no data without location/network. */
     @Binds
     @Singleton
-    abstract fun bindWeatherProvider(impl: NoopWeatherProvider): WeatherProvider
+    abstract fun bindWeatherProvider(impl: OpenMeteoWeatherProvider): WeatherProvider
 }

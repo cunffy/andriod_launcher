@@ -2,6 +2,7 @@ package com.cunffy.launcher.ui.settings
 
 import android.content.Intent
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -22,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -134,6 +136,24 @@ fun SettingsScreen(
                 OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json")) }) {
                     Text(stringResource(R.string.settings_backup_import))
                 }
+            }
+
+            SectionHeader(stringResource(R.string.settings_updates))
+            OutlinedTextField(
+                value = settings.updateUrl.orEmpty(),
+                onValueChange = viewModel::setUpdateUrl,
+                label = { Text(stringResource(R.string.settings_update_url)) },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Button(onClick = {
+                    viewModel.checkForUpdates { message ->
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                    }
+                }) { Text(stringResource(R.string.settings_check_updates)) }
             }
         }
     }

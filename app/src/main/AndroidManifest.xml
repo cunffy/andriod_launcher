@@ -19,6 +19,12 @@
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <!-- Haptic feedback while dragging home-screen items. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Weather + in-app update download. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Self-update: install downloaded APKs. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Read icon packs installed as themes. -->
     <queries>
         <intent>
@@ -68,6 +74,23 @@
             android:exported="false"
             android:label="@string/settings_title"
             android:theme="@style/Theme.LauncherOpaque" />
+
+        <activity
+            android:name=".ui.notes.NotesActivity"
+            android:exported="false"
+            android:label="@string/notes_title"
+            android:theme="@style/Theme.LauncherOpaque" />
+
+        <!-- Shares downloaded update APKs with the package installer. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <!-- Collects per-app notification counts for icon badges. User must enable it
              in system Notification-access settings; binding is gated by the system. -->

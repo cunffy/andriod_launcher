@@ -22,6 +22,7 @@ data class LauncherSettings(
     val themedIcons: Boolean = false,
     val iconPackPackage: String? = null,
     val badgesEnabled: Boolean = true,
+    val updateUrl: String? = null,
     val gestures: Map<GestureSlot, GestureAction> =
         GestureSlot.entries.associateWith { it.defaultAction },
 )
@@ -38,6 +39,8 @@ class LauncherPreferences @Inject constructor(
     private val themedIconsKey = booleanPreferencesKey("themed_icons")
     private val iconPackKey = stringPreferencesKey("icon_pack")
     private val badgesKey = booleanPreferencesKey("badges_enabled")
+    private val updateUrlKey = stringPreferencesKey("update_url")
+    private val onboardedKey = booleanPreferencesKey("onboarding_complete")
     private fun gestureKey(slot: GestureSlot) = stringPreferencesKey("gesture_${slot.name}")
 
     val settings: Flow<LauncherSettings> = context.dataStore.data.map { it.toSettings() }
@@ -50,6 +53,7 @@ class LauncherPreferences @Inject constructor(
         themedIcons = this[themedIconsKey] ?: false,
         iconPackPackage = this[iconPackKey]?.ifBlank { null },
         badgesEnabled = this[badgesKey] ?: true,
+        updateUrl = this[updateUrlKey]?.ifBlank { null },
         gestures = GestureSlot.entries.associateWith { slot ->
             GestureAction.fromName(this[gestureKey(slot)] ?: slot.defaultAction.name)
         },
@@ -78,6 +82,19 @@ class LauncherPreferences @Inject constructor(
 
     suspend fun setGesture(slot: GestureSlot, action: GestureAction) {
         context.dataStore.edit { it[gestureKey(slot)] = action.name }
+    }
+
+    suspend fun setUpdateUrl(url: String?) {
+        context.dataStore.edit {
+            if (url.isNullOrBlank()) it.remove(updateUrlKey) else it[updateUrlKey] = url
+        }
+    }
+
+    val onboardingComplete: Flow<Boolean> =
+        context.dataStore.data.map { it[onboardedKey] ?: false }
+
+    suspend fun setOnboardingComplete(complete: Boolean) {
+        context.dataStore.edit { it[onboardedKey] = complete }
     }
 
     private companion object {
