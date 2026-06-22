@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Simple stylized "L" mark inside the adaptive safe zone. -->
+    <group android:scaleX="0.55" android:scaleY="0.55" android:pivotX="54" android:pivotY="54">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M40,28 h12 v40 h28 v12 h-40 z" />
+        <path
+            android:fillColor="#9CCC9C"
+            android:pathData="M40,28 h12 v12 h-12 z" />
+    </group>
+</vector>

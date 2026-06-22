@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Launcher</string>
+    <string name="search_hint">Search apps, settings, files, web</string>
+    <string name="search_google_for">Search Google for “%1$s”</string>
+    <string name="all_apps">All apps</string>
+    <string name="category_all">All</string>
+    <string name="permission_files_rationale">Grant media access to include files in search results.</string>
+</resources>
