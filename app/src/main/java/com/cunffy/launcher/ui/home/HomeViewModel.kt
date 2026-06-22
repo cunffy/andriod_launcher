@@ -3,7 +3,9 @@ package com.cunffy.launcher.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cunffy.launcher.data.apps.AppCatalog
+import com.cunffy.launcher.data.apps.AppCategory
 import com.cunffy.launcher.data.apps.AppInfo
+import com.cunffy.launcher.data.customization.CustomizationRepository
 import com.cunffy.launcher.data.db.entities.HomeItemEntity
 import com.cunffy.launcher.data.home.HomeEntry
 import com.cunffy.launcher.data.home.HomeLayoutRepository
@@ -22,6 +24,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val appCatalog: AppCatalog,
     private val homeLayoutRepository: HomeLayoutRepository,
+    private val customizationRepository: CustomizationRepository,
     private val preferences: LauncherPreferences,
     badgeStore: NotificationBadgeStore,
 ) : ViewModel() {
@@ -75,6 +78,26 @@ class HomeViewModel @Inject constructor(
 
     fun renameFolder(folderId: Long, title: String) = viewModelScope.launch {
         homeLayoutRepository.renameFolder(folderId, title)
+    }
+
+    fun addToHome(app: AppInfo) = viewModelScope.launch {
+        homeLayoutRepository.addApp(app.componentKey, cellX = 0, cellY = 0)
+    }
+
+    fun setHidden(app: AppInfo, hidden: Boolean) = viewModelScope.launch {
+        customizationRepository.setHidden(app.componentKey, hidden)
+    }
+
+    fun setLocked(app: AppInfo, locked: Boolean) = viewModelScope.launch {
+        customizationRepository.setLocked(app.componentKey, locked)
+    }
+
+    fun setLabel(app: AppInfo, label: String?) = viewModelScope.launch {
+        customizationRepository.setLabel(app.componentKey, label)
+    }
+
+    fun setCategoryOverride(app: AppInfo, category: AppCategory?) = viewModelScope.launch {
+        customizationRepository.setCategoryOverride(app.componentKey, category?.name)
     }
 
     private companion object {

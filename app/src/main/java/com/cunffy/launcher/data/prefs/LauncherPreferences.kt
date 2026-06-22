@@ -34,6 +34,8 @@ data class LauncherSettings(
     val showDrawerLabels: Boolean = true,
     val searchAutoFocus: Boolean = false,
     val clock24h: Boolean = false,
+    val gridColumns: Int = 4,
+    val gridRows: Int = 6,
     val gestures: Map<GestureSlot, GestureAction> =
         GestureSlot.entries.associateWith { it.defaultAction },
 )
@@ -59,6 +61,8 @@ class LauncherPreferences @Inject constructor(
     private val drawerLabelsKey = booleanPreferencesKey("drawer_labels")
     private val searchAutoFocusKey = booleanPreferencesKey("search_autofocus")
     private val clock24hKey = booleanPreferencesKey("clock_24h")
+    private val gridColumnsKey = intPreferencesKey("grid_columns")
+    private val gridRowsKey = intPreferencesKey("grid_rows")
     private fun gestureKey(slot: GestureSlot) = stringPreferencesKey("gesture_${slot.name}")
 
     val settings: Flow<LauncherSettings> = context.dataStore.data.map { it.toSettings() }
@@ -80,6 +84,8 @@ class LauncherPreferences @Inject constructor(
         showDrawerLabels = this[drawerLabelsKey] ?: true,
         searchAutoFocus = this[searchAutoFocusKey] ?: false,
         clock24h = this[clock24hKey] ?: false,
+        gridColumns = this[gridColumnsKey] ?: 4,
+        gridRows = this[gridRowsKey] ?: 6,
         gestures = GestureSlot.entries.associateWith { slot ->
             GestureAction.fromName(this[gestureKey(slot)] ?: slot.defaultAction.name)
         },
@@ -142,6 +148,14 @@ class LauncherPreferences @Inject constructor(
 
     suspend fun setClock24h(enabled: Boolean) {
         context.dataStore.edit { it[clock24hKey] = enabled }
+    }
+
+    suspend fun setGridColumns(columns: Int) {
+        context.dataStore.edit { it[gridColumnsKey] = columns.coerceIn(3, 6) }
+    }
+
+    suspend fun setGridRows(rows: Int) {
+        context.dataStore.edit { it[gridRowsKey] = rows.coerceIn(4, 8) }
     }
 
     val onboardingComplete: Flow<Boolean> =

@@ -34,8 +34,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.cunffy.launcher.data.apps.AppInfo
 import com.cunffy.launcher.data.home.HomeEntry
-import com.cunffy.launcher.data.home.HomeLayoutRepository.Companion.GRID_COLUMNS
-import com.cunffy.launcher.data.home.HomeLayoutRepository.Companion.GRID_ROWS
 import com.cunffy.launcher.ui.components.AppIcon
 import com.cunffy.launcher.ui.components.rememberDrawablePainter
 import com.cunffy.launcher.widgets.HostedWidget
@@ -51,10 +49,13 @@ fun HomeItemView(
     cellH: Dp,
     cellWpx: Float,
     cellHpx: Float,
+    columns: Int,
+    rows: Int,
     editMode: Boolean,
     controller: WidgetHostController,
     badgeCount: Int,
     onLaunchApp: (AppInfo) -> Unit,
+    onLongClickApp: (AppInfo) -> Unit,
     onOpenFolder: (HomeEntry.Folder) -> Unit,
     onRemove: () -> Unit,
     onDropped: (Int, Int) -> Unit,
@@ -82,9 +83,9 @@ fun HomeItemView(
                             onDrag = { change, delta -> drag += delta; change.consume() },
                             onDragEnd = {
                                 val nx = ((baseX + drag.x) / cellWpx).roundToInt()
-                                    .coerceIn(0, GRID_COLUMNS - spanX)
+                                    .coerceIn(0, (columns - spanX).coerceAtLeast(0))
                                 val ny = ((baseY + drag.y) / cellHpx).roundToInt()
-                                    .coerceIn(0, GRID_ROWS - spanY)
+                                    .coerceIn(0, (rows - spanY).coerceAtLeast(0))
                                 drag = Offset.Zero
                                 onDropped(nx, ny)
                             },
@@ -100,6 +101,11 @@ fun HomeItemView(
             is HomeEntry.App -> AppIcon(
                 app = entry.app,
                 onClick = { onLaunchApp(entry.app) },
+                onLongClick = if (!editMode) {
+                    { onLongClickApp(entry.app) }
+                } else {
+                    null
+                },
                 labelColor = Color.White,
                 badgeCount = badgeCount,
             )

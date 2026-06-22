@@ -50,10 +50,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cunffy.launcher.R
 import com.cunffy.launcher.data.apps.AppInfo
 import com.cunffy.launcher.data.home.HomeEntry
-import com.cunffy.launcher.data.home.HomeLayoutRepository.Companion.GRID_COLUMNS
-import com.cunffy.launcher.data.home.HomeLayoutRepository.Companion.GRID_ROWS
 import com.cunffy.launcher.security.BiometricAuthenticator
 import com.cunffy.launcher.ui.components.Dock
+import com.cunffy.launcher.ui.drawer.AppActionsSheet
+import com.cunffy.launcher.ui.drawer.AppEditDialog
 import com.cunffy.launcher.ui.search.SearchPill
 import com.cunffy.launcher.ui.settings.SettingsActivity
 import com.cunffy.launcher.widgets.WidgetHostController
@@ -82,6 +82,8 @@ fun HomeScreen(
 
     val controller = remember { WidgetHostController(context) }
     var openFolder by remember { mutableStateOf<HomeEntry.Folder?>(null) }
+    var menuApp by remember { mutableStateOf<AppInfo?>(null) }
+    var editApp by remember { mutableStateOf<AppInfo?>(null) }
 
     fun launchApp(app: AppInfo) {
         val activity = context as? FragmentActivity
@@ -110,8 +112,10 @@ fun HomeScreen(
             val id = result.data?.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1) ?: -1
             if (id != -1) {
                 val info = controller.providerInfo(id)
-                val spanX = ((info?.minWidth ?: 0) / WIDGET_CELL_PX + 1).coerceIn(1, GRID_COLUMNS)
-                val spanY = ((info?.minHeight ?: 0) / WIDGET_CELL_PX + 1).coerceIn(1, GRID_ROWS)
+                val spanX = ((info?.minWidth ?: 0) / WIDGET_CELL_PX + 1)
+                    .coerceIn(1, settings.gridColumns)
+                val spanY = ((info?.minHeight ?: 0) / WIDGET_CELL_PX + 1)
+                    .coerceIn(1, settings.gridRows)
                 viewModel.addWidget(id, spanX, spanY, 0, 0, pendingWidgetPage)
             }
         }
@@ -142,11 +146,14 @@ fun HomeScreen(
         ) { page ->
             HomeGridPage(
                 entries = desktop.filter { it.item.page == page },
+                columns = settings.gridColumns,
+                rows = settings.gridRows,
                 editMode = editMode,
                 controller = controller,
                 badgeCounts = badgeCounts,
                 onToggleEdit = { viewModel.setEditMode(!editMode) },
                 onLaunchApp = ::launchApp,
+                onLongClickApp = { menuApp = it },
                 onOpenFolder = { openFolder = it },
                 onRemove = { viewModel.removeItem(it) },
                 onDropped = { entry, x, y -> handleDrop(desktop, entry, x, y, viewModel) },
@@ -196,6 +203,46 @@ fun HomeScreen(
             onRename = { title -> viewModel.renameFolder(folder.folder.id, title) },
         )
     }
+
+    menuApp?.let { app ->
+        AppActionsSheet(
+            app = app,
+            onDismiss = { menuApp = null },
+            onInfo = { openAppInfo(context, app); menuApp = null },
+            onEdit = { editApp = app; menuApp = null },
+            onToggleHide = { viewModel.setHidden(app, !app.hidden); menuApp = null },
+            onToggleLock = { viewModel.setLocked(app, !app.locked); menuApp = null },
+            onAddToHome = { viewModel.addToHome(app); menuApp = null },
+            onUninstall = { uninstall(context, app); menuApp = null },
+        )
+    }
+
+    editApp?.let { app ->
+        AppEditDialog(
+            app = app,
+            onDismiss = { editApp = null },
+            onSave = { label, category ->
+                viewModel.setLabel(app, label)
+                viewModel.setCategoryOverride(app, category.takeIf { it != app.category })
+                editApp = null
+            },
+        )
+    }
+}
+
+private fun openAppInfo(context: android.content.Context, app: AppInfo) {
+    context.startActivity(
+        Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            .setData(android.net.Uri.parse("package:${app.packageName}"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+    )
+}
+
+private fun uninstall(context: android.content.Context, app: AppInfo) {
+    context.startActivity(
+        Intent(Intent.ACTION_DELETE, android.net.Uri.parse("package:${app.packageName}"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+    )
 }
 
 private const val WIDGET_CELL_PX = 220
@@ -221,11 +268,14 @@ private fun handleDrop(
 @Composable
 private fun HomeGridPage(
     entries: List<HomeEntry>,
+    columns: Int,
+    rows: Int,
     editMode: Boolean,
     controller: WidgetHostController,
     badgeCounts: Map<String, Int>,
     onToggleEdit: () -> Unit,
     onLaunchApp: (AppInfo) -> Unit,
+    onLongClickApp: (AppInfo) -> Unit,
     onOpenFolder: (HomeEntry.Folder) -> Unit,
     onRemove: (HomeEntry) -> Unit,
     onDropped: (HomeEntry, Int, Int) -> Unit,
@@ -242,8 +292,8 @@ private fun HomeGridPage(
             },
     ) {
         val density = LocalDensity.current
-        val cellW = maxWidth / GRID_COLUMNS
-        val cellH = maxHeight / GRID_ROWS
+        val cellW = maxWidth / columns
+        val cellH = maxHeight / rows
         val cellWpx = with(density) { cellW.toPx() }
         val cellHpx = with(density) { cellH.toPx() }
 
@@ -255,11 +305,14 @@ private fun HomeGridPage(
                     cellH = cellH,
                     cellWpx = cellWpx,
                     cellHpx = cellHpx,
+                    columns = columns,
+                    rows = rows,
                     editMode = editMode,
                     controller = controller,
                     badgeCount = (entry as? HomeEntry.App)
                         ?.let { badgeCounts[it.app.packageName] } ?: 0,
                     onLaunchApp = onLaunchApp,
+                    onLongClickApp = onLongClickApp,
                     onOpenFolder = onOpenFolder,
                     onRemove = { onRemove(entry) },
                     onDropped = { x, y -> onDropped(entry, x, y) },

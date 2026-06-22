@@ -79,6 +79,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setClock24h(enabled: Boolean) = viewModelScope.launch { preferences.setClock24h(enabled) }
 
+    fun setGridColumns(columns: Int) = viewModelScope.launch { preferences.setGridColumns(columns) }
+
+    fun setGridRows(rows: Int) = viewModelScope.launch { preferences.setGridRows(rows) }
+
     fun setIconPack(packageName: String?) = viewModelScope.launch {
         preferences.setIconPack(packageName)
     }

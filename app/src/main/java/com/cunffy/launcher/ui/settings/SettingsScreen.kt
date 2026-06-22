@@ -113,6 +113,18 @@ fun SettingsScreen(
                 range = 36..72,
                 onChange = viewModel::setIconSize,
             )
+            SliderRow(
+                title = "Home grid columns",
+                value = settings.gridColumns,
+                range = 3..6,
+                onChange = viewModel::setGridColumns,
+            )
+            SliderRow(
+                title = "Home grid rows",
+                value = settings.gridRows,
+                range = 4..8,
+                onChange = viewModel::setGridRows,
+            )
             SwitchRow(
                 title = "App labels in drawer",
                 subtitle = "Show names under app icons",
