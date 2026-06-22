@@ -34,9 +34,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -76,6 +78,7 @@ fun HomeScreen(
     val desktop by viewModel.desktop.collectAsStateWithLifecycle()
     val badgeCounts by viewModel.badgeCounts.collectAsStateWithLifecycle()
     val editMode by viewModel.editMode.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
 
     val controller = remember { WidgetHostController(context) }
     var openFolder by remember { mutableStateOf<HomeEntry.Folder?>(null) }
@@ -130,7 +133,7 @@ fun HomeScreen(
             .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Clock(modifier = Modifier.padding(top = 36.dp))
+        Clock(use24h = settings.clock24h, modifier = Modifier.padding(top = 36.dp))
         AtAGlance(modifier = Modifier.padding(top = 8.dp))
 
         HorizontalPager(
@@ -176,7 +179,11 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             MediaCard()
-            Dock(apps = dockApps, onAppClick = ::launchApp)
+            Dock(
+                apps = dockApps,
+                onAppClick = ::launchApp,
+                iconSize = settings.iconSizeDp.dp,
+            )
             SearchPill(hint = stringResource(R.string.search_hint), onClick = onOpenDrawer)
         }
     }
@@ -222,11 +229,15 @@ private fun HomeGridPage(
     onRemove: (HomeEntry) -> Unit,
     onDropped: (HomeEntry, Int, Int) -> Unit,
 ) {
+    val haptics = LocalHapticFeedback.current
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectTapGestures(onLongPress = { onToggleEdit() })
+                detectTapGestures(onLongPress = {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onToggleEdit()
+                })
             },
     ) {
         val density = LocalDensity.current
@@ -275,12 +286,15 @@ private fun PageIndicator(pageCount: Int, currentPage: Int, modifier: Modifier =
 }
 
 @Composable
-private fun Clock(modifier: Modifier = Modifier) {
+private fun Clock(use24h: Boolean, modifier: Modifier = Modifier) {
     val now by produceState(initialValue = Date()) {
         while (true) {
             value = Date()
             delay(10_000)
         }
+    }
+    val timeFormat = remember(use24h) {
+        SimpleDateFormat(if (use24h) "H:mm" else "h:mm", Locale.getDefault())
     }
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
         Text(
@@ -299,5 +313,4 @@ private fun Clock(modifier: Modifier = Modifier) {
     }
 }
 
-private val timeFormat = SimpleDateFormat("h:mm", Locale.getDefault())
 private val dateFormat = SimpleDateFormat("EEE, MMM d", Locale.getDefault())

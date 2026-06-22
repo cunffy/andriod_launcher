@@ -42,6 +42,9 @@ class HomeViewModel @Inject constructor(
         if (settings.badgesEnabled) counts else emptyMap()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
+    val settings = preferences.settings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.cunffy.launcher.data.prefs.LauncherSettings())
+
     private val _editMode = MutableStateFlow(false)
     val editMode = _editMode.asStateFlow()
 

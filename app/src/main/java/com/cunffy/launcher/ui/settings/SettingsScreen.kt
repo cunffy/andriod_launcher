@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -41,8 +42,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cunffy.launcher.R
+import com.cunffy.launcher.data.prefs.ThemeMode
 import com.cunffy.launcher.gesture.GestureAction
 import com.cunffy.launcher.gesture.GestureSlot
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +93,43 @@ fun SettingsScreen(
                 current = settings.iconPackPackage,
                 packs = iconPacks,
                 onSelect = viewModel::setIconPack,
+            )
+            ThemeModeRow(current = settings.themeMode, onSelect = viewModel::setThemeMode)
+            SwitchRow(
+                title = "Dynamic color",
+                subtitle = "Use Material You colors from your wallpaper",
+                checked = settings.dynamicColor,
+                onCheckedChange = viewModel::setDynamicColor,
+            )
+            SliderRow(
+                title = "Wallpaper dim",
+                value = settings.wallpaperDim,
+                range = 0..80,
+                onChange = viewModel::setWallpaperDim,
+            )
+            SliderRow(
+                title = "Icon size",
+                value = settings.iconSizeDp,
+                range = 36..72,
+                onChange = viewModel::setIconSize,
+            )
+            SwitchRow(
+                title = "App labels in drawer",
+                subtitle = "Show names under app icons",
+                checked = settings.showDrawerLabels,
+                onCheckedChange = viewModel::setDrawerLabels,
+            )
+            SwitchRow(
+                title = "Focus search on open",
+                subtitle = "Pop up the keyboard when the drawer opens",
+                checked = settings.searchAutoFocus,
+                onCheckedChange = viewModel::setSearchAutoFocus,
+            )
+            SwitchRow(
+                title = "24-hour clock",
+                subtitle = "Show the home clock in 24-hour time",
+                checked = settings.clock24h,
+                onCheckedChange = viewModel::setClock24h,
             )
 
             SectionHeader(stringResource(R.string.settings_badges))
@@ -263,5 +303,48 @@ private fun GestureRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ThemeModeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true }
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Theme", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Text(
+                current.name.lowercase().replaceFirstChar { it.uppercase() },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            ThemeMode.entries.forEach { mode ->
+                DropdownMenuItem(
+                    text = { Text(mode.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                    onClick = { onSelect(mode); expanded = false },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SliderRow(title: String, value: Int, range: IntRange, onChange: (Int) -> Unit) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Row {
+            Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Text("$value", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Slider(
+            value = value.toFloat(),
+            onValueChange = { onChange(it.roundToInt()) },
+            valueRange = range.first.toFloat()..range.last.toFloat(),
+        )
     }
 }

@@ -7,7 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateOf
 import androidx.fragment.app.FragmentActivity
 import com.cunffy.launcher.ui.LauncherRoot
-import com.cunffy.launcher.ui.theme.LauncherTheme
+import com.cunffy.launcher.ui.theme.LauncherThemeGate
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -26,7 +26,7 @@ class LauncherActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            LauncherTheme {
+            LauncherThemeGate {
                 LauncherRoot(homePressTick = homePressTick.value)
             }
         }

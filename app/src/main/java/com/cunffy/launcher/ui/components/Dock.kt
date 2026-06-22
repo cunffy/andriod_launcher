@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.cunffy.launcher.data.apps.AppInfo
 
@@ -19,6 +20,7 @@ fun Dock(
     apps: List<AppInfo>,
     onAppClick: (AppInfo) -> Unit,
     modifier: Modifier = Modifier,
+    iconSize: Dp = 52.dp,
 ) {
     if (apps.isEmpty()) return
     Row(
@@ -35,6 +37,7 @@ fun Dock(
                 onClick = { onAppClick(app) },
                 showLabel = false,
                 labelColor = Color.White,
+                iconSize = iconSize,
             )
         }
     }

@@ -7,6 +7,8 @@ import com.cunffy.launcher.data.apps.AppCategory
 import com.cunffy.launcher.data.apps.AppInfo
 import com.cunffy.launcher.data.customization.CustomizationRepository
 import com.cunffy.launcher.data.home.HomeLayoutRepository
+import com.cunffy.launcher.data.prefs.LauncherPreferences
+import com.cunffy.launcher.data.prefs.LauncherSettings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,9 +24,13 @@ class AppDrawerViewModel @Inject constructor(
     private val appCatalog: AppCatalog,
     private val customizationRepository: CustomizationRepository,
     private val homeLayoutRepository: HomeLayoutRepository,
+    preferences: LauncherPreferences,
 ) : ViewModel() {
 
     private val allApps = appCatalog.visibleApps
+
+    val settings = preferences.settings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LauncherSettings())
 
     private val _selectedCategory = MutableStateFlow(AppCategory.ALL)
     val selectedCategory = _selectedCategory.asStateFlow()

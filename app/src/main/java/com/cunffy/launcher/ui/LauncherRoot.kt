@@ -2,6 +2,8 @@ package com.cunffy.launcher.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -63,8 +65,12 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
     // 1f = closed, 0f = open. Animatable so drag (snapTo) and settle (animateTo) share state.
     val progress = remember { Animatable(1f) }
 
-    fun open() = scope.launch { progress.animateTo(0f, tween(300)) }
-    fun close() = scope.launch { progress.animateTo(1f, tween(300)) }
+    val settleSpec = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMediumLow,
+    )
+    fun open() = scope.launch { progress.animateTo(0f, settleSpec) }
+    fun close() = scope.launch { progress.animateTo(1f, settleSpec) }
 
     fun performGesture(action: GestureAction) {
         when (action) {
@@ -91,6 +97,15 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
             .fillMaxSize()
             .onSizeChanged { heightPx = it.height.toFloat() },
     ) {
+        // Optional dim over the live wallpaper for readability.
+        if (settings.wallpaperDim > 0) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = settings.wallpaperDim / 100f)),
+            )
+        }
+
         var dragAccum by remember { mutableFloatStateOf(0f) }
         val swipeUp = settings.gestures[GestureSlot.SWIPE_UP] ?: GestureAction.OPEN_DRAWER
         val swipeDown = settings.gestures[GestureSlot.SWIPE_DOWN] ?: GestureAction.EXPAND_NOTIFICATIONS

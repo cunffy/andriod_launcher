@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.fragment.app.FragmentActivity
-import com.cunffy.launcher.ui.theme.LauncherTheme
+import com.cunffy.launcher.ui.theme.LauncherThemeGate
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -16,7 +16,7 @@ class NotesActivity : FragmentActivity() {
         val noteId = intent.getLongExtra(EXTRA_NOTE_ID, -1L).takeIf { it >= 0 }
         val newBody = intent.getStringExtra(EXTRA_NEW_BODY)
         setContent {
-            LauncherTheme {
+            LauncherThemeGate {
                 NotesScreen(
                     initialNoteId = noteId,
                     initialNewBody = newBody,

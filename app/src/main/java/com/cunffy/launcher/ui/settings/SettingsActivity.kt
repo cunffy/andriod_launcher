@@ -8,7 +8,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.cunffy.launcher.ui.theme.LauncherTheme
+import com.cunffy.launcher.ui.theme.LauncherThemeGate
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -22,7 +22,7 @@ class SettingsActivity : FragmentActivity() {
             else -> ROUTE_ROOT
         }
         setContent {
-            LauncherTheme {
+            LauncherThemeGate {
                 SettingsNavHost(startDestination = start, onFinish = ::finish)
             }
         }

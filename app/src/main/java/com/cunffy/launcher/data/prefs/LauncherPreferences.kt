@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.cunffy.launcher.gesture.GestureAction
@@ -16,6 +17,8 @@ import javax.inject.Singleton
 
 private val Context.dataStore by preferencesDataStore(name = "launcher_prefs")
 
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 /** Snapshot of all simple launcher settings, derived from DataStore. */
 data class LauncherSettings(
     val dockComponents: List<String> = emptyList(),
@@ -23,6 +26,14 @@ data class LauncherSettings(
     val iconPackPackage: String? = null,
     val badgesEnabled: Boolean = true,
     val updateUrl: String? = null,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val dynamicColor: Boolean = true,
+    /** Dim overlay over the wallpaper, 0–100 %. */
+    val wallpaperDim: Int = 0,
+    val iconSizeDp: Int = 52,
+    val showDrawerLabels: Boolean = true,
+    val searchAutoFocus: Boolean = false,
+    val clock24h: Boolean = false,
     val gestures: Map<GestureSlot, GestureAction> =
         GestureSlot.entries.associateWith { it.defaultAction },
 )
@@ -41,6 +52,13 @@ class LauncherPreferences @Inject constructor(
     private val badgesKey = booleanPreferencesKey("badges_enabled")
     private val updateUrlKey = stringPreferencesKey("update_url")
     private val onboardedKey = booleanPreferencesKey("onboarding_complete")
+    private val themeModeKey = stringPreferencesKey("theme_mode")
+    private val dynamicColorKey = booleanPreferencesKey("dynamic_color")
+    private val wallpaperDimKey = intPreferencesKey("wallpaper_dim")
+    private val iconSizeKey = intPreferencesKey("icon_size")
+    private val drawerLabelsKey = booleanPreferencesKey("drawer_labels")
+    private val searchAutoFocusKey = booleanPreferencesKey("search_autofocus")
+    private val clock24hKey = booleanPreferencesKey("clock_24h")
     private fun gestureKey(slot: GestureSlot) = stringPreferencesKey("gesture_${slot.name}")
 
     val settings: Flow<LauncherSettings> = context.dataStore.data.map { it.toSettings() }
@@ -54,6 +72,14 @@ class LauncherPreferences @Inject constructor(
         iconPackPackage = this[iconPackKey]?.ifBlank { null },
         badgesEnabled = this[badgesKey] ?: true,
         updateUrl = this[updateUrlKey]?.ifBlank { null },
+        themeMode = runCatching { ThemeMode.valueOf(this[themeModeKey] ?: "") }
+            .getOrDefault(ThemeMode.SYSTEM),
+        dynamicColor = this[dynamicColorKey] ?: true,
+        wallpaperDim = this[wallpaperDimKey] ?: 0,
+        iconSizeDp = this[iconSizeKey] ?: 52,
+        showDrawerLabels = this[drawerLabelsKey] ?: true,
+        searchAutoFocus = this[searchAutoFocusKey] ?: false,
+        clock24h = this[clock24hKey] ?: false,
         gestures = GestureSlot.entries.associateWith { slot ->
             GestureAction.fromName(this[gestureKey(slot)] ?: slot.defaultAction.name)
         },
@@ -88,6 +114,34 @@ class LauncherPreferences @Inject constructor(
         context.dataStore.edit {
             if (url.isNullOrBlank()) it.remove(updateUrlKey) else it[updateUrlKey] = url
         }
+    }
+
+    suspend fun setThemeMode(mode: ThemeMode) {
+        context.dataStore.edit { it[themeModeKey] = mode.name }
+    }
+
+    suspend fun setDynamicColor(enabled: Boolean) {
+        context.dataStore.edit { it[dynamicColorKey] = enabled }
+    }
+
+    suspend fun setWallpaperDim(percent: Int) {
+        context.dataStore.edit { it[wallpaperDimKey] = percent.coerceIn(0, 100) }
+    }
+
+    suspend fun setIconSize(dp: Int) {
+        context.dataStore.edit { it[iconSizeKey] = dp.coerceIn(36, 72) }
+    }
+
+    suspend fun setDrawerLabels(enabled: Boolean) {
+        context.dataStore.edit { it[drawerLabelsKey] = enabled }
+    }
+
+    suspend fun setSearchAutoFocus(enabled: Boolean) {
+        context.dataStore.edit { it[searchAutoFocusKey] = enabled }
+    }
+
+    suspend fun setClock24h(enabled: Boolean) {
+        context.dataStore.edit { it[clock24hKey] = enabled }
     }
 
     val onboardingComplete: Flow<Boolean> =

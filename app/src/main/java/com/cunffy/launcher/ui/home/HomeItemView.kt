@@ -59,6 +59,7 @@ fun HomeItemView(
     onRemove: () -> Unit,
     onDropped: (Int, Int) -> Unit,
 ) {
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     var drag by remember(entry.item.id) { mutableStateOf(Offset.Zero) }
     val spanX = entry.item.spanX
     val spanY = entry.item.spanY
@@ -73,6 +74,11 @@ fun HomeItemView(
                 if (editMode) {
                     Modifier.pointerInput(entry.item.id) {
                         detectDragGestures(
+                            onDragStart = {
+                                haptics.performHapticFeedback(
+                                    androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress,
+                                )
+                            },
                             onDrag = { change, delta -> drag += delta; change.consume() },
                             onDragEnd = {
                                 val nx = ((baseX + drag.x) / cellWpx).roundToInt()

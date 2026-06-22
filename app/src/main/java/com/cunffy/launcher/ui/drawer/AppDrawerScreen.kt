@@ -59,6 +59,7 @@ fun AppDrawerScreen(
     val apps by drawerViewModel.visibleApps.collectAsStateWithLifecycle()
     val categories by drawerViewModel.categories.collectAsStateWithLifecycle()
     val selectedCategory by drawerViewModel.selectedCategory.collectAsStateWithLifecycle()
+    val settings by drawerViewModel.settings.collectAsStateWithLifecycle()
 
     var menuApp by remember { mutableStateOf<AppInfo?>(null) }
     var editApp by remember { mutableStateOf<AppInfo?>(null) }
@@ -99,6 +100,7 @@ fun AppDrawerScreen(
             },
             onClear = searchViewModel::clear,
             hint = stringResource(R.string.search_hint),
+            autoFocus = settings.searchAutoFocus,
             modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
         )
 
@@ -125,6 +127,8 @@ fun AppDrawerScreen(
                             app = app,
                             onClick = { launchApp(app) },
                             onLongClick = { menuApp = app },
+                            iconSize = settings.iconSizeDp.dp,
+                            showLabel = settings.showDrawerLabels,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }

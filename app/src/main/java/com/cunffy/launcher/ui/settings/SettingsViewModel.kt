@@ -55,6 +55,30 @@ class SettingsViewModel @Inject constructor(
         preferences.setThemedIcons(enabled)
     }
 
+    fun setThemeMode(mode: com.cunffy.launcher.data.prefs.ThemeMode) = viewModelScope.launch {
+        preferences.setThemeMode(mode)
+    }
+
+    fun setDynamicColor(enabled: Boolean) = viewModelScope.launch {
+        preferences.setDynamicColor(enabled)
+    }
+
+    fun setWallpaperDim(percent: Int) = viewModelScope.launch {
+        preferences.setWallpaperDim(percent)
+    }
+
+    fun setIconSize(dp: Int) = viewModelScope.launch { preferences.setIconSize(dp) }
+
+    fun setDrawerLabels(enabled: Boolean) = viewModelScope.launch {
+        preferences.setDrawerLabels(enabled)
+    }
+
+    fun setSearchAutoFocus(enabled: Boolean) = viewModelScope.launch {
+        preferences.setSearchAutoFocus(enabled)
+    }
+
+    fun setClock24h(enabled: Boolean) = viewModelScope.launch { preferences.setClock24h(enabled) }
+
     fun setIconPack(packageName: String?) = viewModelScope.launch {
         preferences.setIconPack(packageName)
     }
