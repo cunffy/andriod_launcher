@@ -2,10 +2,10 @@ package com.cunffy.launcher
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateOf
+import androidx.fragment.app.FragmentActivity
 import com.cunffy.launcher.ui.LauncherRoot
 import com.cunffy.launcher.ui.theme.LauncherTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -17,7 +17,7 @@ import dagger.hilt.android.AndroidEntryPoint
  * to collapse the app drawer back to the home screen.
  */
 @AndroidEntryPoint
-class LauncherActivity : ComponentActivity() {
+class LauncherActivity : FragmentActivity() {
 
     // Incremented each time HOME is pressed so Compose can react and collapse the drawer.
     private val homePressTick = mutableStateOf(0)

@@ -14,6 +14,24 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    <!-- Universal search: contacts and the At-a-Glance next-event source. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <!-- Haptic feedback while dragging home-screen items. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Read icon packs installed as themes. -->
+    <queries>
+        <intent>
+            <action android:name="org.adw.launcher.THEMES" />
+        </intent>
+        <intent>
+            <action android:name="com.gau.go.launcherex.theme" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="com.anddoes.launcher.THEME" />
+        </intent>
+    </queries>
 
     <application
         android:name=".LauncherApplication"
@@ -44,6 +62,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.settings.SettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_title"
+            android:theme="@style/Theme.LauncherOpaque" />
+
+        <!-- Collects per-app notification counts for icon badges. User must enable it
+             in system Notification-access settings; binding is gated by the system. -->
+        <service
+            android:name=".notifications.LauncherNotificationListener"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

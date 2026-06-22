@@ -14,11 +14,17 @@ import android.content.Context
 object NotificationShade {
 
     @SuppressLint("WrongConstant", "PrivateApi")
-    fun expand(context: Context): Boolean = runCatching {
+    fun expand(context: Context): Boolean = invoke(context, "expandNotificationsPanel")
+
+    @SuppressLint("WrongConstant", "PrivateApi")
+    fun expandQuickSettings(context: Context): Boolean = invoke(context, "expandSettingsPanel")
+
+    @SuppressLint("PrivateApi")
+    private fun invoke(context: Context, method: String): Boolean = runCatching {
         val service = context.getSystemService("statusbar") ?: return false
-        val method = Class.forName("android.app.StatusBarManager")
-            .getMethod("expandNotificationsPanel")
-        method.invoke(service)
+        Class.forName("android.app.StatusBarManager")
+            .getMethod(method)
+            .invoke(service)
         true
     }.getOrDefault(false)
 }

@@ -27,12 +27,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cunffy.launcher.gesture.GestureAction
+import com.cunffy.launcher.gesture.GestureSlot
 import com.cunffy.launcher.gesture.NotificationShade
 import com.cunffy.launcher.ui.drawer.AppDrawerScreen
 import com.cunffy.launcher.ui.home.HomeScreen
+import com.cunffy.launcher.ui.settings.SettingsActivity
+import android.content.Intent
 import kotlinx.coroutines.launch
 
 /**
@@ -44,15 +51,29 @@ import kotlinx.coroutines.launch
  *  - drag the handle down / Back / Home button → close drawer
  */
 @Composable
-fun LauncherRoot(homePressTick: Int) {
+fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
     var heightPx by remember { mutableFloatStateOf(0f) }
     // 1f = closed, 0f = open. Animatable so drag (snapTo) and settle (animateTo) share state.
     val progress = remember { Animatable(1f) }
 
     fun open() = scope.launch { progress.animateTo(0f, tween(300)) }
     fun close() = scope.launch { progress.animateTo(1f, tween(300)) }
+
+    fun performGesture(action: GestureAction) {
+        when (action) {
+            GestureAction.OPEN_DRAWER, GestureAction.OPEN_SEARCH -> open()
+            GestureAction.EXPAND_NOTIFICATIONS -> NotificationShade.expand(context)
+            GestureAction.EXPAND_QUICK_SETTINGS -> NotificationShade.expandQuickSettings(context)
+            GestureAction.OPEN_LAUNCHER_SETTINGS -> context.startActivity(
+                Intent(context, SettingsActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+            GestureAction.NONE -> Unit
+        }
+    }
 
     // Pressing the Home button re-delivers a HOME intent; collapse the drawer when it does.
     LaunchedEffect(homePressTick) {
@@ -67,26 +88,35 @@ fun LauncherRoot(homePressTick: Int) {
             .onSizeChanged { heightPx = it.height.toFloat() },
     ) {
         var dragAccum by remember { mutableFloatStateOf(0f) }
+        val swipeUp = settings.gestures[GestureSlot.SWIPE_UP] ?: GestureAction.OPEN_DRAWER
+        val swipeDown = settings.gestures[GestureSlot.SWIPE_DOWN] ?: GestureAction.EXPAND_NOTIFICATIONS
+        val doubleTap = settings.gestures[GestureSlot.DOUBLE_TAP] ?: GestureAction.NONE
+        // Only drag the drawer up 1:1 when swipe-up is actually bound to opening it.
+        val dragOpensDrawer = swipeUp == GestureAction.OPEN_DRAWER || swipeUp == GestureAction.OPEN_SEARCH
         HomeScreen(
             onOpenDrawer = { open() },
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(heightPx) {
+                .pointerInput(doubleTap) {
+                    detectTapGestures(onDoubleTap = { performGesture(doubleTap) })
+                }
+                .pointerInput(heightPx, dragOpensDrawer) {
                     detectVerticalDragGestures(
                         onDragStart = { dragAccum = 0f },
                         onVerticalDrag = { _, dy ->
                             dragAccum += dy
-                            // Only an upward drag pulls the drawer up 1:1.
-                            if (heightPx > 0f && dy < 0f) {
+                            if (dragOpensDrawer && heightPx > 0f && dy < 0f) {
                                 val next = (progress.value + dy / heightPx).coerceIn(0f, 1f)
                                 scope.launch { progress.snapTo(next) }
                             }
                         },
                         onDragEnd = {
                             when {
-                                dragAccum < -heightPx * SETTLE_FRACTION -> open()
+                                dragAccum < -heightPx * SETTLE_FRACTION -> {
+                                    if (dragOpensDrawer) open() else { performGesture(swipeUp); close() }
+                                }
                                 dragAccum > heightPx * SETTLE_FRACTION -> {
-                                    NotificationShade.expand(context)
+                                    performGesture(swipeDown)
                                     close()
                                 }
                                 else -> close()

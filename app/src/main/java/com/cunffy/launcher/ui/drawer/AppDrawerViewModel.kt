@@ -2,9 +2,11 @@ package com.cunffy.launcher.ui.drawer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cunffy.launcher.data.apps.AppCatalog
 import com.cunffy.launcher.data.apps.AppCategory
 import com.cunffy.launcher.data.apps.AppInfo
-import com.cunffy.launcher.data.apps.AppRepository
+import com.cunffy.launcher.data.customization.CustomizationRepository
+import com.cunffy.launcher.data.home.HomeLayoutRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -12,19 +14,21 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class AppDrawerViewModel @Inject constructor(
-    private val appRepository: AppRepository,
+    private val appCatalog: AppCatalog,
+    private val customizationRepository: CustomizationRepository,
+    private val homeLayoutRepository: HomeLayoutRepository,
 ) : ViewModel() {
 
-    private val allApps = appRepository.apps
+    private val allApps = appCatalog.visibleApps
 
     private val _selectedCategory = MutableStateFlow(AppCategory.ALL)
     val selectedCategory = _selectedCategory.asStateFlow()
 
-    /** Categories with at least one app, in sidebar order, always led by [AppCategory.ALL]. */
     val categories = allApps
         .map { apps ->
             val present = apps.mapTo(mutableSetOf()) { it.category }
@@ -40,5 +44,25 @@ class AppDrawerViewModel @Inject constructor(
         _selectedCategory.value = category
     }
 
-    fun launch(app: AppInfo) = appRepository.launch(app)
+    fun launch(app: AppInfo) = appCatalog.launch(app)
+
+    fun setHidden(app: AppInfo, hidden: Boolean) = viewModelScope.launch {
+        customizationRepository.setHidden(app.componentKey, hidden)
+    }
+
+    fun setLocked(app: AppInfo, locked: Boolean) = viewModelScope.launch {
+        customizationRepository.setLocked(app.componentKey, locked)
+    }
+
+    fun setLabel(app: AppInfo, label: String?) = viewModelScope.launch {
+        customizationRepository.setLabel(app.componentKey, label)
+    }
+
+    fun setCategoryOverride(app: AppInfo, category: AppCategory?) = viewModelScope.launch {
+        customizationRepository.setCategoryOverride(app.componentKey, category?.name)
+    }
+
+    fun addToHome(app: AppInfo) = viewModelScope.launch {
+        homeLayoutRepository.addApp(app.componentKey, cellX = 0, cellY = 0)
+    }
 }

@@ -6,4 +6,50 @@
     <string name="all_apps">All apps</string>
     <string name="category_all">All</string>
     <string name="permission_files_rationale">Grant media access to include files in search results.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Launcher settings</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_themed_icons">Themed icons</string>
+    <string name="settings_themed_icons_summary">Tint icons to match your wallpaper</string>
+    <string name="settings_icon_pack">Icon pack</string>
+    <string name="settings_icon_pack_system">System default</string>
+    <string name="settings_gestures">Gestures</string>
+    <string name="settings_gesture_swipe_up">Swipe up</string>
+    <string name="settings_gesture_swipe_down">Swipe down</string>
+    <string name="settings_gesture_double_tap">Double tap</string>
+    <string name="settings_badges">Notification badges</string>
+    <string name="settings_badges_summary">Show a dot on apps with notifications</string>
+    <string name="settings_notification_access">Grant notification access</string>
+    <string name="settings_hidden_apps">Hidden apps</string>
+    <string name="settings_backup">Back up &amp; restore</string>
+    <string name="settings_backup_export">Export layout to file</string>
+    <string name="settings_backup_import">Restore layout from file</string>
+
+    <!-- App long-press menu -->
+    <string name="app_action_info">App info</string>
+    <string name="app_action_edit">Edit</string>
+    <string name="app_action_hide">Hide</string>
+    <string name="app_action_unhide">Unhide</string>
+    <string name="app_action_lock">Lock</string>
+    <string name="app_action_unlock">Unlock</string>
+    <string name="app_action_uninstall">Uninstall</string>
+    <string name="app_action_add_home">Add to home</string>
+    <string name="edit_label">Name</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Biometric -->
+    <string name="unlock_app_title">Unlock app</string>
+    <string name="unlock_app_subtitle">Authenticate to open this locked app</string>
+
+    <!-- Home / widgets -->
+    <string name="edit_home">Edit home screen</string>
+    <string name="add_widget">Add widget</string>
+    <string name="remove">Remove</string>
+    <string name="new_folder">New folder</string>
+    <string name="folder_default_name">Folder</string>
+
+    <!-- At a glance -->
+    <string name="glance_no_events">No upcoming events</string>
 </resources>

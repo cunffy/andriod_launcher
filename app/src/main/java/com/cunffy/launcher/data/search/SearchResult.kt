@@ -6,10 +6,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 /** Buckets used to group and order results in the UI (lower [rank] shows first). */
 enum class SearchResultType(val rank: Int) {
-    APP(0),
-    SETTING(1),
-    FILE(2),
-    WEB(3),
+    ANSWER(0),
+    APP(1),
+    CONTACT(2),
+    SETTING(3),
+    COMMAND(4),
+    FILE(5),
+    WEB(6),
 }
 
 /** An icon backed either by a loaded [Drawable] (apps/files) or a Compose [ImageVector]. */

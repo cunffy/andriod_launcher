@@ -16,6 +16,11 @@ data class AppInfo(
     val user: UserHandle,
     val category: AppCategory,
     val icon: Drawable,
+    val hidden: Boolean = false,
+    val locked: Boolean = false,
 ) {
     val key: String = "${componentName.flattenToString()}#${user.hashCode()}"
+
+    /** Stable identity used for persistence (ignores user, keyed on the component). */
+    val componentKey: String = componentName.flattenToString()
 }

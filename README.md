@@ -19,10 +19,29 @@ A custom Android home-screen launcher — the foundation for a personal "OS" ble
   driven by the OS app category with a package-name heuristic fallback.
 - **Gestures** — swipe up = drawer, swipe down on home = expand the notification shade.
 
+## Also included (expanded build)
+
+- **Universal search add-ons**: inline calculator, offline unit conversions, contacts,
+  a command palette (run launcher actions), and Play/YouTube/Maps hand-off chips.
+- **Home grid editor**: long-press the home screen to enter edit mode — drag app shortcuts,
+  drop one onto another to make a **folder**, add **widgets** (AppWidget hosting), and remove
+  items. Backed by Room.
+- **Per-app customization**: long-press an app in the drawer to rename it, change its
+  category, **hide** it, **lock** it behind biometrics, add it to home, or uninstall.
+- **At a Glance**: date + next calendar event (and weather via a pluggable provider).
+- **Themed icons & icon packs**: Material You monochrome theming or third-party icon packs.
+- **Notification badges**: dots on icons via a NotificationListenerService.
+- **Gesture editor**: bind swipe-up / swipe-down / double-tap to launcher actions.
+- **Backup & restore**: export/import the whole layout to a JSON file (Settings).
+
+A **Settings** screen (separate activity) hosts appearance, gestures, badges, hidden apps,
+and backup. Reach it from the home edit-mode toolbar, the command palette, or a gesture.
+
 ## Tech stack
 
 Kotlin · Jetpack Compose (Material 3 / Material You) · MVVM (`ViewModel` + `StateFlow`) ·
-Hilt DI · DataStore · `LauncherApps`/`MediaStore`. Min SDK 31, target/compile SDK 35.
+Hilt DI · DataStore + **Room** · `LauncherApps`/`MediaStore`/`AppWidgetHost` · Biometric ·
+kotlinx.serialization. Min SDK 31, target/compile SDK 35.
 
 ## Project layout
 
