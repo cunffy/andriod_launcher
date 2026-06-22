@@ -15,12 +15,25 @@ android {
         applicationId = "com.cunffy.launcher"
         minSdk = 31
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        // CI passes VERSION_CODE/VERSION_NAME so release builds and the update manifest agree.
+        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = System.getenv("VERSION_NAME") ?: "0.1.0"
         vectorDrawables { useSupportLibrary = true }
 
         // Default remote update manifest URL (overridable at runtime in Settings).
         buildConfigField("String", "UPDATE_MANIFEST_URL", "\"\"")
+    }
+
+    signingConfigs {
+        create("release") {
+            // Populated only in CI (or locally) when a keystore is provided via env.
+            System.getenv("KEYSTORE_FILE")?.let { path ->
+                storeFile = file(path)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -30,6 +43,14 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Use the release keystore when present, otherwise the debug key so local and
+            // unsigned-CI builds still install. (Self-update requires a stable key — set the
+            // KEYSTORE_* secrets so every release shares one signature.)
+            signingConfig = if (System.getenv("KEYSTORE_FILE") != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 
