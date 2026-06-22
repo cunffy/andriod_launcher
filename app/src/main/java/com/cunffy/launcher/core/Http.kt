@@ -18,9 +18,14 @@ object Http {
                     connectTimeout = timeoutMs
                     readTimeout = timeoutMs
                 }
-                connection.use { conn ->
-                    if (conn.responseCode !in 200..299) return@runCatching null
-                    conn.inputStream.bufferedReader().use { it.readText() }
+                try {
+                    if (connection.responseCode in 200..299) {
+                        connection.inputStream.bufferedReader().use { it.readText() }
+                    } else {
+                        null
+                    }
+                } finally {
+                    connection.disconnect()
                 }
             }.getOrNull()
         }
@@ -33,21 +38,19 @@ object Http {
                     connectTimeout = timeoutMs
                     readTimeout = timeoutMs
                 }
-                connection.use { conn ->
-                    if (conn.responseCode !in 200..299) return@runCatching false
-                    target.parentFile?.mkdirs()
-                    conn.inputStream.use { input ->
-                        FileOutputStream(target).use { output -> input.copyTo(output) }
+                try {
+                    if (connection.responseCode !in 200..299) {
+                        false
+                    } else {
+                        target.parentFile?.mkdirs()
+                        connection.inputStream.use { input ->
+                            FileOutputStream(target).use { output -> input.copyTo(output) }
+                        }
+                        true
                     }
-                    true
+                } finally {
+                    connection.disconnect()
                 }
             }.getOrDefault(false)
-        }
-
-    private inline fun <T> HttpURLConnection.use(block: (HttpURLConnection) -> T): T =
-        try {
-            block(this)
-        } finally {
-            disconnect()
         }
 }
