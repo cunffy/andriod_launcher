@@ -193,6 +193,7 @@ fun HomeScreen(
             folder = folder,
             onDismiss = { openFolder = null },
             onAppClick = { app -> openFolder = null; launchApp(app) },
+            onRename = { title -> viewModel.renameFolder(folder.folder.id, title) },
         )
     }
 }

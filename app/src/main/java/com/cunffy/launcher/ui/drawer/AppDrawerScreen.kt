@@ -2,6 +2,7 @@ package com.cunffy.launcher.ui.drawer
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,19 +17,25 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cunffy.launcher.R
@@ -63,6 +70,8 @@ fun AppDrawerScreen(
 
     var menuApp by remember { mutableStateOf<AppInfo?>(null) }
     var editApp by remember { mutableStateOf<AppInfo?>(null) }
+    val gridState = rememberLazyGridState()
+    val scope = rememberCoroutineScope()
 
     fun closeAndReset() {
         searchViewModel.clear()
@@ -116,6 +125,7 @@ fun AppDrawerScreen(
         } else {
             Row(modifier = Modifier.fillMaxSize()) {
                 LazyVerticalGrid(
+                    state = gridState,
                     columns = GridCells.Adaptive(minSize = 76.dp),
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     contentPadding = PaddingValues(vertical = 8.dp),
@@ -133,6 +143,10 @@ fun AppDrawerScreen(
                         )
                     }
                 }
+                AlphabetIndex(
+                    apps = apps,
+                    onLetter = { index -> scope.launch { gridState.scrollToItem(index) } },
+                )
                 CategorySidebar(
                     categories = categories,
                     selected = selectedCategory,
@@ -216,4 +230,38 @@ private fun uninstall(context: android.content.Context, app: AppInfo) {
         Intent(Intent.ACTION_DELETE, Uri.parse("package:${app.packageName}"))
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
     )
+}
+
+/** A–Z fast-scroll rail; tapping a letter jumps the grid to the first app under it. */
+@Composable
+private fun AlphabetIndex(apps: List<AppInfo>, onLetter: (Int) -> Unit) {
+    if (apps.isEmpty()) return
+    val letterToIndex = remember(apps) {
+        val map = LinkedHashMap<Char, Int>()
+        apps.forEachIndexed { index, app ->
+            val first = app.label.firstOrNull()?.uppercaseChar()
+            val letter = if (first != null && first.isLetter()) first else '#'
+            if (letter !in map) map[letter] = index
+        }
+        map
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxHeight()
+            .width(20.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        letterToIndex.forEach { (letter, index) ->
+            Text(
+                text = letter.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clickable { onLetter(index) }
+                    .padding(vertical = 1.dp),
+            )
+        }
+    }
 }
