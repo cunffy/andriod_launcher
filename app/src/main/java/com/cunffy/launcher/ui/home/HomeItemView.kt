@@ -59,6 +59,7 @@ fun HomeItemView(
     onOpenFolder: (HomeEntry.Folder) -> Unit,
     onRemove: () -> Unit,
     onDropped: (Int, Int) -> Unit,
+    onCrossPage: (delta: Int, cellY: Int) -> Unit,
 ) {
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     var drag by remember(entry.item.id) { mutableStateOf(Offset.Zero) }
@@ -82,12 +83,20 @@ fun HomeItemView(
                             },
                             onDrag = { change, delta -> drag += delta; change.consume() },
                             onDragEnd = {
-                                val nx = ((baseX + drag.x) / cellWpx).roundToInt()
-                                    .coerceIn(0, (columns - spanX).coerceAtLeast(0))
+                                val rawX = ((baseX + drag.x) / cellWpx).roundToInt()
                                 val ny = ((baseY + drag.y) / cellHpx).roundToInt()
                                     .coerceIn(0, (rows - spanY).coerceAtLeast(0))
                                 drag = Offset.Zero
-                                onDropped(nx, ny)
+                                // Dropping past a horizontal edge moves the item to the
+                                // previous/next page; otherwise it's an in-page move.
+                                when {
+                                    rawX >= columns -> onCrossPage(1, ny)
+                                    rawX < 0 -> onCrossPage(-1, ny)
+                                    else -> onDropped(
+                                        rawX.coerceIn(0, (columns - spanX).coerceAtLeast(0)),
+                                        ny,
+                                    )
+                                }
                             },
                         )
                     }

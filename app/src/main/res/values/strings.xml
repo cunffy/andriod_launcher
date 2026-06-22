@@ -60,4 +60,8 @@
     <string name="settings_updates">Updates</string>
     <string name="settings_update_url">Update manifest URL</string>
     <string name="settings_check_updates">Check for updates</string>
+
+    <!-- Accessibility -->
+    <string name="accessibility_label">Launcher gestures</string>
+    <string name="accessibility_description">Lets the launcher open the notification shade and quick settings from home-screen gestures.</string>
 </resources>

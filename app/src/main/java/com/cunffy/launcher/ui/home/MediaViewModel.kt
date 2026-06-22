@@ -19,6 +19,7 @@ class MediaViewModel @Inject constructor(
         val title: String,
         val artist: String,
         val isPlaying: Boolean,
+        val albumArt: android.graphics.Bitmap?,
     )
 
     private val _nowPlaying = MutableStateFlow<NowPlaying?>(null)
@@ -55,10 +56,13 @@ class MediaViewModel @Inject constructor(
             _nowPlaying.value = null
             return
         }
+        val art = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+            ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_ART)
         _nowPlaying.value = NowPlaying(
             title = title,
             artist = artist,
             isPlaying = c.playbackState?.state == PlaybackState.STATE_PLAYING,
+            albumArt = art,
         )
     }
 

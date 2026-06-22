@@ -157,6 +157,15 @@ fun HomeScreen(
                 onOpenFolder = { openFolder = it },
                 onRemove = { viewModel.removeItem(it) },
                 onDropped = { entry, x, y -> handleDrop(desktop, entry, x, y, viewModel) },
+                onCrossPage = { entry, delta, cellY ->
+                    val newPage = (entry.item.page + delta).coerceAtLeast(0)
+                    val newCellX = if (delta > 0) {
+                        0
+                    } else {
+                        (settings.gridColumns - entry.item.spanX).coerceAtLeast(0)
+                    }
+                    viewModel.moveItemToPage(entry.item, newPage, newCellX, cellY)
+                },
             )
         }
 
@@ -279,6 +288,7 @@ private fun HomeGridPage(
     onOpenFolder: (HomeEntry.Folder) -> Unit,
     onRemove: (HomeEntry) -> Unit,
     onDropped: (HomeEntry, Int, Int) -> Unit,
+    onCrossPage: (HomeEntry, Int, Int) -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
     BoxWithConstraints(
@@ -316,6 +326,7 @@ private fun HomeGridPage(
                     onOpenFolder = onOpenFolder,
                     onRemove = { onRemove(entry) },
                     onDropped = { x, y -> onDropped(entry, x, y) },
+                    onCrossPage = { delta, cellY -> onCrossPage(entry, delta, cellY) },
                 )
             }
         }

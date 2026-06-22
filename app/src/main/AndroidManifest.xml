@@ -92,6 +92,21 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Optional: reliable notification-shade / quick-settings gestures.
+             Enabled by the user in Accessibility settings. -->
+        <service
+            android:name=".accessibility.LauncherAccessibilityService"
+            android:exported="false"
+            android:label="@string/accessibility_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
         <!-- Collects per-app notification counts for icon badges. User must enable it
              in system Notification-access settings; binding is gated by the system. -->
         <service

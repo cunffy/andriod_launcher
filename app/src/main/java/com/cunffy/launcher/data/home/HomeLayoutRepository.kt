@@ -80,6 +80,9 @@ class HomeLayoutRepository @Inject constructor(
     suspend fun moveItem(item: HomeItemEntity, cellX: Int, cellY: Int) =
         dao.updateItem(item.copy(cellX = cellX, cellY = cellY))
 
+    suspend fun moveItemToPage(item: HomeItemEntity, page: Int, cellX: Int, cellY: Int) =
+        dao.updateItem(item.copy(page = page, cellX = cellX, cellY = cellY))
+
     suspend fun removeItem(item: HomeItemEntity) {
         if (item.type == HomeItemType.FOLDER) item.folderId?.let { dao.clearFolder(it); dao.deleteFolder(it) }
         dao.deleteItem(item)

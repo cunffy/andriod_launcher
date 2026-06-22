@@ -63,6 +63,11 @@ class HomeViewModel @Inject constructor(
         homeLayoutRepository.moveItem(item, cellX, cellY)
     }
 
+    fun moveItemToPage(item: HomeItemEntity, page: Int, cellX: Int, cellY: Int) =
+        viewModelScope.launch {
+            homeLayoutRepository.moveItemToPage(item, page, cellX, cellY)
+        }
+
     fun removeItem(entry: HomeEntry) = viewModelScope.launch {
         homeLayoutRepository.removeItem(entry.item)
     }
