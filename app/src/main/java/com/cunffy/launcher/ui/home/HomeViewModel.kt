@@ -51,10 +51,6 @@ class HomeViewModel @Inject constructor(
     private val _editMode = MutableStateFlow(false)
     val editMode = _editMode.asStateFlow()
 
-    init {
-        viewModelScope.launch { homeLayoutRepository.seedDefaultIfEmpty() }
-    }
-
     fun setEditMode(enabled: Boolean) { _editMode.value = enabled }
 
     fun launch(app: AppInfo) = appCatalog.launch(app)
@@ -106,6 +102,6 @@ class HomeViewModel @Inject constructor(
     }
 
     private companion object {
-        const val DEFAULT_DOCK_SIZE = 5
+        const val DEFAULT_DOCK_SIZE = 8
     }
 }

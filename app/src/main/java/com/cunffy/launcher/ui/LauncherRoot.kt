@@ -3,7 +3,6 @@ package com.cunffy.launcher.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -27,7 +26,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -108,12 +106,6 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
             )
         }
 
-        // Frost the home screen behind the drawer as it opens.
-        val homeBlur by animateDpAsState(
-            targetValue = if (progress.value < 0.5f) 16.dp else 0.dp,
-            label = "homeBlur",
-        )
-
         var dragAccum by remember { mutableFloatStateOf(0f) }
         val swipeUp = settings.gestures[GestureSlot.SWIPE_UP] ?: GestureAction.OPEN_DRAWER
         val swipeDown = settings.gestures[GestureSlot.SWIPE_DOWN] ?: GestureAction.EXPAND_NOTIFICATIONS
@@ -124,7 +116,6 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
             onOpenDrawer = { open() },
             modifier = Modifier
                 .fillMaxSize()
-                .blur(homeBlur)
                 .pointerInput(doubleTap) {
                     detectTapGestures(onDoubleTap = { performGesture(doubleTap) })
                 }
@@ -159,7 +150,7 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer { translationY = progress.value * heightPx }
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.86f)),
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)),
             ) {
                 Column(
                     modifier = Modifier

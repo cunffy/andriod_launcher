@@ -3,13 +3,16 @@ package com.cunffy.launcher.data.apps
 import com.cunffy.launcher.data.customization.CustomizationRepository
 import com.cunffy.launcher.data.icons.IconResolver
 import com.cunffy.launcher.data.prefs.LauncherPreferences
+import com.cunffy.launcher.ui.components.IconCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -46,9 +49,16 @@ class AppCatalog @Inject constructor(
                 icon = iconResolver.resolve(base.componentName, base.icon, pack, settings.themedIcons),
                 hidden = c?.hidden == true,
                 locked = c?.locked == true,
+                iconKey = "${base.componentKey}|${pack ?: ""}|${settings.themedIcons}",
             )
         }.sortedBy { it.label.lowercase() }
     }.stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+    init {
+        // Pre-rasterize icons off the main thread so the drawer scrolls smoothly on first open.
+        allApps.onEach { list -> list.forEach { IconCache.warm(it.iconKey, it.icon) } }
+            .launchIn(scope)
+    }
 
     /** Apps shown in the drawer/search (hidden apps removed). */
     val visibleApps: StateFlow<List<AppInfo>> = allApps

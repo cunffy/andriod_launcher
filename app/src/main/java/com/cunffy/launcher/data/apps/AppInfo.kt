@@ -18,6 +18,8 @@ data class AppInfo(
     val icon: Drawable,
     val hidden: Boolean = false,
     val locked: Boolean = false,
+    /** Cache key that changes when the resolved icon changes (pack/theme toggles). */
+    val iconKey: String = componentName.flattenToString(),
 ) {
     val key: String = "${componentName.flattenToString()}#${user.hashCode()}"
 

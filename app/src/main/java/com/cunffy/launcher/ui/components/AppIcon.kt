@@ -74,9 +74,10 @@ fun AppIcon(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top,
     ) {
+        val painter = remember(app.iconKey) { BitmapPainter(IconCache.get(app.iconKey, app.icon)) }
         Box {
             Image(
-                painter = rememberDrawablePainter(app.icon),
+                painter = painter,
                 contentDescription = app.label,
                 modifier = Modifier
                     .size(iconSize)

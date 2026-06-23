@@ -1,5 +1,6 @@
 package com.cunffy.launcher
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -25,6 +26,7 @@ class LauncherActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        preferHighRefreshRate()
         setContent {
             LauncherThemeGate {
                 LauncherRoot(homePressTick = homePressTick.value)
@@ -38,5 +40,23 @@ class LauncherActivity : FragmentActivity() {
         if (isHome) {
             homePressTick.value += 1
         }
+    }
+}
+
+/**
+ * Asks the system for the highest refresh-rate display mode at the current resolution, so the
+ * launcher animates at 90/120/144 Hz on capable screens instead of being capped at 60.
+ */
+fun Activity.preferHighRefreshRate() {
+    val display = display ?: return
+    val current = display.mode ?: return
+    val best = display.supportedModes
+        .filter {
+            it.physicalWidth == current.physicalWidth &&
+                it.physicalHeight == current.physicalHeight
+        }
+        .maxByOrNull { it.refreshRate } ?: return
+    if (best.modeId != current.modeId) {
+        window.attributes = window.attributes.apply { preferredDisplayModeId = best.modeId }
     }
 }
