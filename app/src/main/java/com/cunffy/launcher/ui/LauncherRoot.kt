@@ -145,7 +145,9 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
                 },
         )
 
-        if (progress.value < 1f) {
+        // Keep the drawer composed once the size is known and just translate it; this avoids
+        // re-composing the whole grid every open, which is what made opening feel slow.
+        if (heightPx > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
