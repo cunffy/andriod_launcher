@@ -2,14 +2,13 @@ package com.cunffy.launcher.data.apps
 
 import android.content.Context
 import android.content.Intent
-import android.provider.ContactsContract
 import android.provider.Telephony
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Computes the default dock: the apps the user asked to keep handy — Contacts, Messages,
+ * Computes the default dock: the apps the user asked to keep handy — Phone, Messages,
  * Spotify, simPRO, Slack — resolved to whatever is installed (by package, then by app name).
  * Anything not installed is simply skipped; the dock is never padded with random apps.
  */
@@ -32,9 +31,11 @@ class DockDefaults @Inject constructor(
 
         fun add(key: String?) { if (key != null) result.add(key) }
 
-        // Contacts (resolve the system contacts app, else match by name).
-        add(byPackage(resolvePackage(Intent(Intent.ACTION_VIEW, ContactsContract.Contacts.CONTENT_URI)))
-            ?: byLabel("contacts"))
+        // Phone / dialer (resolve the default dialer, else known packages, else by name).
+        add(byPackage(resolvePackage(Intent(Intent.ACTION_DIAL)))
+            ?: byPackage("com.google.android.dialer")
+            ?: byPackage("com.android.dialer")
+            ?: byLabel("phone", "dialer"))
         // Messages (default SMS app, else by name).
         add(byPackage(Telephony.Sms.getDefaultSmsPackage(context)) ?: byLabel("messages", "messaging"))
         add(byPackage("com.spotify.music") ?: byLabel("spotify"))

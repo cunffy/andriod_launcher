@@ -4,7 +4,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PorterDuff
@@ -54,15 +53,11 @@ class IconResolver @Inject constructor(
     private fun shaped(base: Drawable, shape: IconShape): Drawable {
         val src = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
         val srcCanvas = Canvas(src)
-        if (base is AdaptiveIconDrawable) {
-            base.setBounds(0, 0, SIZE, SIZE)
-            base.draw(srcCanvas)
-        } else {
-            srcCanvas.drawColor(Color.WHITE)
-            val inset = (SIZE * LEGACY_INSET).toInt()
-            base.setBounds(inset, inset, SIZE - inset, SIZE - inset)
-            base.draw(srcCanvas)
-        }
+        // Both adaptive and legacy icons are scaled to fill the tile, then cropped to the
+        // shape. Filling (rather than insetting legacy icons on a white circle) keeps full-bleed
+        // OEM icons like the camera looking clean instead of shrunken on a white background.
+        base.setBounds(0, 0, SIZE, SIZE)
+        base.draw(srcCanvas)
         return BitmapDrawable(context.resources, maskToShape(src, shape))
     }
 
@@ -118,6 +113,5 @@ class IconResolver @Inject constructor(
 
     private companion object {
         const val SIZE = 192
-        const val LEGACY_INSET = 0.16f
     }
 }
