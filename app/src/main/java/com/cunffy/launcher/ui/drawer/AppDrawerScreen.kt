@@ -20,10 +20,15 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Shop
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +62,7 @@ import java.net.URLEncoder
 fun AppDrawerScreen(
     onRequestClose: () -> Unit,
     modifier: Modifier = Modifier,
+    drawerOpen: Boolean = false,
     drawerViewModel: AppDrawerViewModel = hiltViewModel(),
     searchViewModel: SearchViewModel = hiltViewModel(),
 ) {
@@ -76,6 +82,11 @@ fun AppDrawerScreen(
     fun closeAndReset() {
         searchViewModel.clear()
         onRequestClose()
+    }
+
+    // Each time the drawer opens, jump to the top and focus search; clear it when it closes.
+    LaunchedEffect(drawerOpen) {
+        if (drawerOpen) gridState.scrollToItem(0) else searchViewModel.clear()
     }
 
     fun launchApp(app: AppInfo) {
@@ -98,20 +109,34 @@ fun AppDrawerScreen(
             .imePadding()
             .padding(horizontal = 12.dp),
     ) {
-        SearchBar(
-            query = query,
-            onQueryChange = searchViewModel::onQueryChange,
-            onImeSearch = {
-                if (query.isNotBlank()) {
-                    WebSearchProvider.googleSearch(context, query)
-                    closeAndReset()
-                }
-            },
-            onClear = searchViewModel::clear,
-            hint = stringResource(R.string.search_hint),
-            autoFocus = settings.searchAutoFocus,
-            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SearchBar(
+                query = query,
+                onQueryChange = searchViewModel::onQueryChange,
+                onImeSearch = {
+                    if (query.isNotBlank()) {
+                        WebSearchProvider.googleSearch(context, query)
+                        closeAndReset()
+                    }
+                },
+                onClear = searchViewModel::clear,
+                hint = stringResource(R.string.search_hint),
+                autoFocus = drawerOpen,
+                modifier = Modifier.weight(1f),
+            )
+            // Minimalist, always-present shortcut to the Play Store.
+            IconButton(onClick = { openPlayStore(context) }) {
+                Icon(
+                    Icons.Rounded.Shop,
+                    contentDescription = "Play Store",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
 
         if (query.isNotBlank()) {
             HandoffChips(query = query)
@@ -217,6 +242,12 @@ private fun HandoffChips(query: String) {
             )
         }
     }
+}
+
+private fun openPlayStore(context: android.content.Context) {
+    val intent = context.packageManager.getLaunchIntentForPackage("com.android.vending")
+        ?: Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store"))
+    context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
 
 private fun openAppInfo(context: android.content.Context, app: AppInfo) {

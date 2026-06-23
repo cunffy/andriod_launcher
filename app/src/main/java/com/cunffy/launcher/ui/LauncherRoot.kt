@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -69,6 +70,8 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
     var heightPx by remember { mutableFloatStateOf(0f) }
     // 1f = closed, 0f = open. Animatable so drag (snapTo) and settle (animateTo) share state.
     val progress = remember { Animatable(1f) }
+    // True once the drawer is mostly open; drives search auto-focus + scroll-to-top.
+    val drawerOpen by remember { derivedStateOf { progress.value < 0.5f } }
 
     val settleSpec = spring<Float>(
         dampingRatio = Spring.DampingRatioNoBouncy,
@@ -150,14 +153,20 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
                 },
         )
 
-        // Over-scrolling the app list downward (i.e. already at the top and the user keeps
-        // pulling down) drags the whole drawer closed, anywhere on screen — not just on the
-        // small handle. Pulling back up re-opens it before release.
+        // Closing by dragging the drawer down only when the user is ALREADY at the top of the
+        // list and then deliberately drags down again — not when a scroll merely reaches the
+        // top, and not from fling momentum. We track whether the list consumed any scroll during
+        // the current gesture; if it did, this gesture was a scroll, so we don't close.
         val drawerNestedScroll = remember(heightPx) {
             object : NestedScrollConnection {
+                var listScrolledThisGesture = false
+
                 override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                     val dy = available.y
-                    if (dy < 0f && heightPx > 0f && progress.value > 0f) {
+                    // Dragging up while the drawer is partway closed pulls it back open.
+                    if (source == NestedScrollSource.UserInput &&
+                        dy < 0f && heightPx > 0f && progress.value > 0f
+                    ) {
                         val next = (progress.value + dy / heightPx).coerceIn(0f, 1f)
                         scope.launch { progress.snapTo(next) }
                         return Offset(0f, dy)
@@ -170,8 +179,11 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
                     available: Offset,
                     source: NestedScrollSource,
                 ): Offset {
+                    if (consumed.y != 0f) listScrolledThisGesture = true
                     val dy = available.y
-                    if (dy > 0f && heightPx > 0f) {
+                    if (source == NestedScrollSource.UserInput &&
+                        dy > 0f && heightPx > 0f && !listScrolledThisGesture
+                    ) {
                         val next = (progress.value + dy / heightPx).coerceIn(0f, 1f)
                         scope.launch { progress.snapTo(next) }
                         return Offset(0f, dy)
@@ -180,6 +192,7 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
                 }
 
                 override suspend fun onPreFling(available: Velocity): Velocity {
+                    listScrolledThisGesture = false
                     if (progress.value > 0f) {
                         if (progress.value > CLOSE_THRESHOLD || available.y > 1500f) {
                             progress.animateTo(1f, settleSpec)
@@ -219,6 +232,7 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
                     )
                     AppDrawerScreen(
                         onRequestClose = { close() },
+                        drawerOpen = drawerOpen,
                         modifier = Modifier.weight(1f),
                     )
                 }

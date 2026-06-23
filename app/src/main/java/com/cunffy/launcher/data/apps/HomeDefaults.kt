@@ -62,12 +62,19 @@ class HomeDefaults @Inject constructor(
             byPackage("com.google.android.documentsui", "com.android.documentsui")
                 ?: byLabel("files", "file manager"),
         )
-        // Top up the essentials row so the home screen never seeds a short bottom row.
-        if (essentials.size < ROW_SIZE) {
-            for (app in apps) {
-                if (essentials.size >= ROW_SIZE) break
-                if (used.add(app.componentKey)) essentials.add(app.componentKey)
-            }
+        addEssential(byPackage("com.android.vending") ?: byLabel("play store"))
+        // If any of the above weren't installed, top up from a curated list of common apps
+        // (never arbitrary alphabetical picks like an authenticator app).
+        val curatedFallback = listOf(
+            byPackage("com.google.android.gm") ?: byLabel("gmail"),
+            byPackage("com.google.android.apps.maps") ?: byLabel("maps"),
+            byPackage("com.google.android.calendar") ?: byLabel("calendar"),
+            byPackage("com.google.android.deskclock", "com.android.deskclock") ?: byLabel("clock"),
+            byPackage("com.android.settings") ?: byLabel("settings"),
+        )
+        for (key in curatedFallback) {
+            if (essentials.size >= ROW_SIZE) break
+            addEssential(key)
         }
 
         return listOf(favorites, essentials)
