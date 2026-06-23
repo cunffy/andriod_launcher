@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -31,6 +32,7 @@ fun FolderDialog(
     onDismiss: () -> Unit,
     onAppClick: (AppInfo) -> Unit,
     onRename: (String) -> Unit,
+    onRemoveApp: (AppInfo) -> Unit,
 ) {
     var title by remember(folder.folder.id) { mutableStateOf(folder.folder.title) }
     Dialog(onDismissRequest = onDismiss) {
@@ -60,9 +62,19 @@ fun FolderDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(folder.apps, key = { it.key }) { app ->
-                        AppIcon(app = app, onClick = { onAppClick(app) })
+                        AppIcon(
+                            app = app,
+                            onClick = { onAppClick(app) },
+                            onLongClick = { onRemoveApp(app) },
+                        )
                     }
                 }
+                Text(
+                    text = "Long-press an app to take it out of the folder",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
             }
         }
     }

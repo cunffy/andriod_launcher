@@ -86,6 +86,63 @@ class HomeLayoutRepository @Inject constructor(
             ),
         )
 
+    /** Places an app in the first free grid cell, overflowing onto a new page if all are full. */
+    suspend fun addAppToFirstFreeCell(componentKey: String) {
+        val items = dao.getItems().filter { it.container == HomeContainer.DESKTOP }
+        val maxPage = items.maxOfOrNull { it.page } ?: 0
+        for (page in 0..maxPage + 1) {
+            for (y in 0 until GRID_ROWS) {
+                for (x in 0 until GRID_COLUMNS) {
+                    val occupied = items.any {
+                        it.page == page &&
+                            x in it.cellX until (it.cellX + it.spanX) &&
+                            y in it.cellY until (it.cellY + it.spanY)
+                    }
+                    if (!occupied) {
+                        dao.insertItem(
+                            HomeItemEntity(
+                                type = HomeItemType.APP,
+                                componentKey = componentKey,
+                                page = page,
+                                cellX = x,
+                                cellY = y,
+                            ),
+                        )
+                        return
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Removes an app from a folder back onto the desktop. If the folder is left with one (or no)
+     * member, it's dissolved and any survivor is placed back on the desktop too.
+     */
+    suspend fun removeFromFolder(folderId: Long, componentKey: String) {
+        dao.removeFolderItem(folderId, componentKey)
+        addAppToFirstFreeCell(componentKey)
+        val remaining = dao.getFolderItems().filter { it.folderId == folderId }
+        if (remaining.size <= 1) {
+            remaining.forEach {
+                addAppToFirstFreeCell(it.componentKey)
+                dao.removeFolderItem(folderId, it.componentKey)
+            }
+            dao.getItems().firstOrNull { it.folderId == folderId }?.let { dao.deleteItem(it) }
+            dao.deleteFolder(folderId)
+        }
+    }
+
+    /** Deletes a whole page: its items are removed and later pages shift up to fill the gap. */
+    suspend fun deletePage(page: Int) {
+        dao.getItems()
+            .filter { it.container == HomeContainer.DESKTOP && it.page == page }
+            .forEach { removeItem(it) }
+        dao.getItems()
+            .filter { it.container == HomeContainer.DESKTOP && it.page > page }
+            .forEach { dao.updateItem(it.copy(page = it.page - 1)) }
+    }
+
     suspend fun addWidget(
         widgetId: Int,
         spanX: Int,

@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
@@ -26,7 +28,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddCircleOutline
+import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.Widgets
@@ -81,6 +85,7 @@ import kotlinx.coroutines.delay
  * shortcuts / folders / widgets (Room-backed), and a pinned search pill + dock. Long-pressing
  * the empty grid toggles edit mode.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeScreen(
     onOpenDrawer: () -> Unit,
@@ -93,12 +98,15 @@ fun HomeScreen(
     val badgeCounts by viewModel.badgeCounts.collectAsStateWithLifecycle()
     val editMode by viewModel.editMode.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val pickerApps by viewModel.pickerApps.collectAsStateWithLifecycle()
 
     val controller = remember { WidgetHostController(context) }
     var openFolder by remember { mutableStateOf<HomeEntry.Folder?>(null) }
     var menuApp by remember { mutableStateOf<AppInfo?>(null) }
     var editApp by remember { mutableStateOf<AppInfo?>(null) }
     var confirmRemove by remember { mutableStateOf<HomeEntry?>(null) }
+    var showAppPicker by remember { mutableStateOf(false) }
+    var confirmDeletePage by remember { mutableStateOf(false) }
 
     fun launchApp(app: AppInfo) {
         val activity = context as? FragmentActivity
@@ -266,10 +274,11 @@ fun HomeScreen(
                 tonalElevation = 4.dp,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
                 ) {
+                    EditAction(Icons.Rounded.Apps, "Apps") { showAppPicker = true }
                     EditAction(Icons.Rounded.AddCircleOutline, "Add page") {
                         // Add a real, persisted page and jump to it.
                         viewModel.setHomePageCount(pageCount + 1)
@@ -283,6 +292,18 @@ fun HomeScreen(
                                 "Wallpaper",
                             ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                         )
+                    }
+                    if (pageCount > 1) {
+                        EditAction(Icons.Rounded.Delete, "Delete page") {
+                            val onThisPage = desktop.count { it.item.page == pagerState.currentPage }
+                            if (onThisPage == 0) {
+                                val p = pagerState.currentPage
+                                viewModel.deletePage(p)
+                                pendingScrollPage = (p - 1).coerceAtLeast(0)
+                            } else {
+                                confirmDeletePage = true
+                            }
+                        }
                     }
                     EditAction(Icons.Rounded.Settings, "Settings") {
                         context.startActivity(
@@ -309,12 +330,20 @@ fun HomeScreen(
         }
     }
 
-    openFolder?.let { folder ->
+    // Track the live folder from the desktop flow so removals/dissolves reflect immediately.
+    val liveFolder = openFolder?.let { of ->
+        desktop.filterIsInstance<HomeEntry.Folder>().firstOrNull { it.folder.id == of.folder.id }
+    }
+    LaunchedEffect(openFolder, liveFolder) {
+        if (openFolder != null && liveFolder == null) openFolder = null
+    }
+    liveFolder?.let { folder ->
         FolderDialog(
             folder = folder,
             onDismiss = { openFolder = null },
             onAppClick = { app -> openFolder = null; launchApp(app) },
             onRename = { title -> viewModel.renameFolder(folder.folder.id, title) },
+            onRemoveApp = { app -> viewModel.removeFromFolder(folder, app) },
         )
     }
 
@@ -374,6 +403,35 @@ fun HomeScreen(
             controller = controller,
             onDismiss = { showWidgetPicker = false },
             onPick = { chooseWidget(it) },
+        )
+    }
+
+    if (showAppPicker) {
+        AppPickerSheet(
+            apps = pickerApps,
+            onDismiss = { showAppPicker = false },
+            onPick = { viewModel.addToHome(it); showAppPicker = false },
+        )
+    }
+
+    if (confirmDeletePage) {
+        AlertDialog(
+            onDismissRequest = { confirmDeletePage = false },
+            title = { Text("Delete this page?") },
+            text = {
+                Text("Items on this page will be removed from the home screen. The apps stay installed.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val p = pagerState.currentPage
+                    viewModel.deletePage(p)
+                    pendingScrollPage = (p - 1).coerceAtLeast(0)
+                    confirmDeletePage = false
+                }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDeletePage = false }) { Text("Cancel") }
+            },
         )
     }
 }

@@ -41,6 +41,9 @@ class HomeViewModel @Inject constructor(
     val desktop = homeLayoutRepository.desktop
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** All launchable apps (for the "add to home" picker). */
+    val pickerApps = appCatalog.visibleApps
+
     /** Per-package notification counts, or empty when badges are disabled. */
     val badgeCounts = combine(badgeStore.counts, preferences.settings) { counts, settings ->
         if (settings.badgesEnabled) counts else emptyMap()
@@ -100,7 +103,17 @@ class HomeViewModel @Inject constructor(
     }
 
     fun addToHome(app: AppInfo) = viewModelScope.launch {
-        homeLayoutRepository.addApp(app.componentKey, cellX = 0, cellY = 0)
+        homeLayoutRepository.addAppToFirstFreeCell(app.componentKey)
+    }
+
+    fun removeFromFolder(folder: HomeEntry.Folder, app: AppInfo) = viewModelScope.launch {
+        homeLayoutRepository.removeFromFolder(folder.folder.id, app.componentKey)
+    }
+
+    fun deletePage(page: Int) = viewModelScope.launch {
+        homeLayoutRepository.deletePage(page)
+        val current = preferences.settings.first().homePageCount
+        preferences.setHomePageCount((current - 1).coerceAtLeast(1))
     }
 
     fun isInDock(app: AppInfo): Boolean = dockApps.value.any { it.componentKey == app.componentKey }
