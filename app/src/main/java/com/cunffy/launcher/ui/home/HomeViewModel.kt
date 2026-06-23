@@ -6,6 +6,7 @@ import com.cunffy.launcher.data.apps.AppCatalog
 import com.cunffy.launcher.data.apps.AppCategory
 import com.cunffy.launcher.data.apps.AppInfo
 import com.cunffy.launcher.data.apps.DockRepository
+import com.cunffy.launcher.data.apps.HomeDefaults
 import com.cunffy.launcher.data.customization.CustomizationRepository
 import com.cunffy.launcher.data.db.entities.HomeItemEntity
 import com.cunffy.launcher.data.home.HomeEntry
@@ -28,6 +29,7 @@ class HomeViewModel @Inject constructor(
     private val homeLayoutRepository: HomeLayoutRepository,
     private val customizationRepository: CustomizationRepository,
     private val dockRepository: DockRepository,
+    private val homeDefaults: HomeDefaults,
     private val preferences: LauncherPreferences,
     badgeStore: NotificationBadgeStore,
 ) : ViewModel() {
@@ -51,10 +53,13 @@ class HomeViewModel @Inject constructor(
     val editMode = _editMode.asStateFlow()
 
     init {
-        // One-time cleanup of the old auto-seeded home layout so the desktop starts empty.
+        // One-time: clear the old auto-seeded layout, then seed Camera/Photos/Files/Browser
+        // along the bottom row once the app list has loaded.
         viewModelScope.launch {
             if (!preferences.homeLayoutResetDone.first()) {
+                val apps = appCatalog.visibleApps.first { it.isNotEmpty() }
                 homeLayoutRepository.resetDesktop()
+                homeLayoutRepository.seedBottomRow(homeDefaults.bottomRowKeys(apps))
                 preferences.setHomeLayoutResetDone()
             }
         }

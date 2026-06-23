@@ -1,13 +1,10 @@
 package com.cunffy.launcher.ui.components
 
 import android.graphics.drawable.Drawable
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,13 +15,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
@@ -57,19 +52,10 @@ fun AppIcon(
     iconSize: Dp = 52.dp,
     badgeCount: Int = 0,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (pressed) 0.88f else 1f, label = "iconScale")
-
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .combinedClickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-                onLongClick = onLongClick,
-            )
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = 6.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top,
@@ -79,9 +65,7 @@ fun AppIcon(
             Image(
                 painter = painter,
                 contentDescription = app.label,
-                modifier = Modifier
-                    .size(iconSize)
-                    .graphicsLayer { scaleX = scale; scaleY = scale },
+                modifier = Modifier.size(iconSize),
             )
             if (badgeCount > 0) {
                 Box(

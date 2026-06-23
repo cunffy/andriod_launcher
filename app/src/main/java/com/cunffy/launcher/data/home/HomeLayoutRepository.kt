@@ -54,6 +54,22 @@ class HomeLayoutRepository @Inject constructor(
         dao.clearFolders()
     }
 
+    /** Places the given apps left-to-right along the bottom row of page 0. */
+    suspend fun seedBottomRow(componentKeys: List<String>) {
+        componentKeys.forEachIndexed { index, key ->
+            if (index < GRID_COLUMNS) {
+                dao.insertItem(
+                    HomeItemEntity(
+                        type = HomeItemType.APP,
+                        componentKey = key,
+                        cellX = index,
+                        cellY = GRID_ROWS - 1,
+                    ),
+                )
+            }
+        }
+    }
+
     suspend fun addApp(componentKey: String, cellX: Int, cellY: Int): Long =
         dao.insertItem(
             HomeItemEntity(

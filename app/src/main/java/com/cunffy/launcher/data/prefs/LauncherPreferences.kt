@@ -54,7 +54,7 @@ class LauncherPreferences @Inject constructor(
     private val badgesKey = booleanPreferencesKey("badges_enabled")
     private val updateUrlKey = stringPreferencesKey("update_url")
     private val onboardedKey = booleanPreferencesKey("onboarding_complete")
-    private val homeResetKey = booleanPreferencesKey("home_layout_reset_v2")
+    private val homeResetKey = booleanPreferencesKey("home_layout_reset_v3")
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val dynamicColorKey = booleanPreferencesKey("dynamic_color")
     private val wallpaperDimKey = intPreferencesKey("wallpaper_dim")
