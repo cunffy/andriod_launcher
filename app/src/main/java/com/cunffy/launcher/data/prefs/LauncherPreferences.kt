@@ -35,7 +35,7 @@ data class LauncherSettings(
     val searchAutoFocus: Boolean = false,
     val clock24h: Boolean = false,
     val gridColumns: Int = 4,
-    val gridRows: Int = 6,
+    val gridRows: Int = 5,
     val gestures: Map<GestureSlot, GestureAction> =
         GestureSlot.entries.associateWith { it.defaultAction },
 )
@@ -54,7 +54,7 @@ class LauncherPreferences @Inject constructor(
     private val badgesKey = booleanPreferencesKey("badges_enabled")
     private val updateUrlKey = stringPreferencesKey("update_url")
     private val onboardedKey = booleanPreferencesKey("onboarding_complete")
-    private val homeResetKey = booleanPreferencesKey("home_layout_reset_v4")
+    private val homeResetKey = booleanPreferencesKey("home_layout_reset_v5")
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val dynamicColorKey = booleanPreferencesKey("dynamic_color")
     private val wallpaperDimKey = intPreferencesKey("wallpaper_dim")
@@ -86,7 +86,7 @@ class LauncherPreferences @Inject constructor(
         searchAutoFocus = this[searchAutoFocusKey] ?: false,
         clock24h = this[clock24hKey] ?: false,
         gridColumns = this[gridColumnsKey] ?: 4,
-        gridRows = this[gridRowsKey] ?: 6,
+        gridRows = this[gridRowsKey] ?: 5,
         gestures = GestureSlot.entries.associateWith { slot ->
             GestureAction.fromName(this[gestureKey(slot)] ?: slot.defaultAction.name)
         },

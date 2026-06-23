@@ -53,13 +53,13 @@ class HomeViewModel @Inject constructor(
     val editMode = _editMode.asStateFlow()
 
     init {
-        // One-time: clear the old auto-seeded layout, then seed Camera/Photos/Files/Browser
-        // along the bottom row once the app list has loaded.
+        // One-time: clear the old auto-seeded layout, then seed the favorite + essential apps
+        // onto the bottom two rows once the app list has loaded.
         viewModelScope.launch {
             if (!preferences.homeLayoutResetDone.first()) {
                 val apps = appCatalog.visibleApps.first { it.isNotEmpty() }
                 homeLayoutRepository.resetDesktop()
-                homeLayoutRepository.seedBottomRow(homeDefaults.bottomRowKeys(apps))
+                homeLayoutRepository.seedMainPage(homeDefaults.mainPageRows(apps))
                 preferences.setHomeLayoutResetDone()
             }
         }

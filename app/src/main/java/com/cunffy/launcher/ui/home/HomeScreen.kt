@@ -6,13 +6,12 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
@@ -23,10 +22,17 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AddCircleOutline
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Wallpaper
+import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,17 +41,18 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -66,13 +73,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Home screen drawn over the wallpaper: clock + At-a-Glance, a drag-and-drop grid of app
  * shortcuts / folders / widgets (Room-backed), and a pinned search pill + dock. Long-pressing
  * the empty grid toggles edit mode.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeScreen(
     onOpenDrawer: () -> Unit,
@@ -80,6 +87,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val dockApps by viewModel.dockApps.collectAsStateWithLifecycle()
     val desktop by viewModel.desktop.collectAsStateWithLifecycle()
     val badgeCounts by viewModel.badgeCounts.collectAsStateWithLifecycle()
@@ -172,6 +180,8 @@ fun HomeScreen(
                         (settings.gridColumns - entry.item.spanX).coerceAtLeast(0)
                     }
                     viewModel.moveItemToPage(entry.item, newPage, newCellX, cellY)
+                    // Follow the item to its new page so the move is visible.
+                    scope.launch { pagerState.animateScrollToPage(newPage) }
                 },
             )
         }
@@ -184,24 +194,42 @@ fun HomeScreen(
 
         if (editMode) {
             Text(
-                text = "Editing — drag to move, ✕ to remove, drag past the edge for the next page",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White,
+                text = "Drag to move • ✕ to remove • drag past the edge to change page",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.85f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
             )
-            FlowRow(
-                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                tonalElevation = 4.dp,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             ) {
-                Button(onClick = ::pickWidget) { Text(stringResource(R.string.add_widget)) }
-                OutlinedButton(onClick = {
-                    context.startActivity(
-                        Intent(context, SettingsActivity::class.java)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    )
-                }) { Text(stringResource(R.string.settings_title)) }
-                Button(onClick = { viewModel.setEditMode(false) }) { Text("Done") }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    EditAction(Icons.Rounded.AddCircleOutline, "Add page") {
+                        scope.launch { pagerState.animateScrollToPage(pageCount - 1) }
+                    }
+                    EditAction(Icons.Rounded.Widgets, "Widget", onClick = ::pickWidget)
+                    EditAction(Icons.Rounded.Wallpaper, "Wallpaper") {
+                        context.startActivity(
+                            Intent.createChooser(
+                                Intent(Intent.ACTION_SET_WALLPAPER),
+                                "Wallpaper",
+                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    }
+                    EditAction(Icons.Rounded.Settings, "Settings") {
+                        context.startActivity(
+                            Intent(context, SettingsActivity::class.java)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    }
+                    EditAction(Icons.Rounded.Check, "Done") { viewModel.setEditMode(false) }
+                }
             }
         }
 
@@ -371,6 +399,25 @@ private fun HomeGridPage(
                 )
             }
         }
+    }
+}
+
+/** One labelled icon button in the edit toolbar (Add page, Widget, Wallpaper, …). */
+@Composable
+private fun EditAction(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+    ) {
+        Icon(icon, contentDescription = label)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(top = 2.dp),
+        )
     }
 }
 

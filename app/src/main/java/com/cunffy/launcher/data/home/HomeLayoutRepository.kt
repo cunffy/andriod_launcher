@@ -54,18 +54,24 @@ class HomeLayoutRepository @Inject constructor(
         dao.clearFolders()
     }
 
-    /** Places the given apps left-to-right along the bottom row of page 0. */
-    suspend fun seedBottomRow(componentKeys: List<String>) {
-        componentKeys.forEachIndexed { index, key ->
-            if (index < GRID_COLUMNS) {
-                dao.insertItem(
-                    HomeItemEntity(
-                        type = HomeItemType.APP,
-                        componentKey = key,
-                        cellX = index,
-                        cellY = GRID_ROWS - 1,
-                    ),
-                )
+    /**
+     * Places the given [rows] of apps onto page 0, anchored to the bottom of the grid: the last
+     * list lands on the bottom row, the one above it on the next row up, and so on.
+     */
+    suspend fun seedMainPage(rows: List<List<String>>) {
+        rows.forEachIndexed { rowIndex, keys ->
+            val cellY = (GRID_ROWS - rows.size + rowIndex).coerceAtLeast(0)
+            keys.forEachIndexed { index, key ->
+                if (index < GRID_COLUMNS) {
+                    dao.insertItem(
+                        HomeItemEntity(
+                            type = HomeItemType.APP,
+                            componentKey = key,
+                            cellX = index,
+                            cellY = cellY,
+                        ),
+                    )
+                }
             }
         }
     }
@@ -156,6 +162,6 @@ class HomeLayoutRepository @Inject constructor(
 
     companion object {
         const val GRID_COLUMNS = 4
-        const val GRID_ROWS = 6
+        const val GRID_ROWS = 5
     }
 }
