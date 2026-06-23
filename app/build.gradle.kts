@@ -20,8 +20,13 @@ android {
         versionName = System.getenv("VERSION_NAME") ?: "0.1.0"
         vectorDrawables { useSupportLibrary = true }
 
-        // Default remote update manifest URL (overridable at runtime in Settings).
-        buildConfigField("String", "UPDATE_MANIFEST_URL", "\"\"")
+        // Default remote update manifest URL (overridable at runtime in Settings). Points at the
+        // latest GitHub release's update.json so the app self-updates with no setup.
+        buildConfigField(
+            "String",
+            "UPDATE_MANIFEST_URL",
+            "\"https://github.com/cunffy/andriod_launcher/releases/latest/download/update.json\"",
+        )
     }
 
     signingConfigs {
