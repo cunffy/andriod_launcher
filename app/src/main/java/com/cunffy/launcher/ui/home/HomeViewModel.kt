@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.cunffy.launcher.data.apps.AppCatalog
 import com.cunffy.launcher.data.apps.AppCategory
 import com.cunffy.launcher.data.apps.AppInfo
+import com.cunffy.launcher.data.apps.DockRepository
 import com.cunffy.launcher.data.customization.CustomizationRepository
 import com.cunffy.launcher.data.db.entities.HomeItemEntity
 import com.cunffy.launcher.data.home.HomeEntry
@@ -25,16 +26,13 @@ class HomeViewModel @Inject constructor(
     private val appCatalog: AppCatalog,
     private val homeLayoutRepository: HomeLayoutRepository,
     private val customizationRepository: CustomizationRepository,
+    private val dockRepository: DockRepository,
     private val preferences: LauncherPreferences,
     badgeStore: NotificationBadgeStore,
 ) : ViewModel() {
 
-    val dockApps = combine(appCatalog.visibleApps, preferences.dockComponents) { apps, pinned ->
-        if (pinned.isEmpty()) {
-            apps.take(DEFAULT_DOCK_SIZE)
-        } else {
-            pinned.mapNotNull { key -> apps.firstOrNull { it.componentKey == key } }
-        }
+    val dockApps = combine(appCatalog.visibleApps, dockRepository.dockKeys) { apps, keys ->
+        keys.mapNotNull { key -> apps.firstOrNull { it.componentKey == key } }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val desktop = homeLayoutRepository.desktop
@@ -85,6 +83,12 @@ class HomeViewModel @Inject constructor(
         homeLayoutRepository.addApp(app.componentKey, cellX = 0, cellY = 0)
     }
 
+    fun isInDock(app: AppInfo): Boolean = dockApps.value.any { it.componentKey == app.componentKey }
+
+    fun addToDock(app: AppInfo) = viewModelScope.launch { dockRepository.add(app) }
+
+    fun removeFromDock(app: AppInfo) = viewModelScope.launch { dockRepository.remove(app) }
+
     fun setHidden(app: AppInfo, hidden: Boolean) = viewModelScope.launch {
         customizationRepository.setHidden(app.componentKey, hidden)
     }
@@ -99,9 +103,5 @@ class HomeViewModel @Inject constructor(
 
     fun setCategoryOverride(app: AppInfo, category: AppCategory?) = viewModelScope.launch {
         customizationRepository.setCategoryOverride(app.componentKey, category?.name)
-    }
-
-    private companion object {
-        const val DEFAULT_DOCK_SIZE = 8
     }
 }

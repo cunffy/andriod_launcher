@@ -21,8 +21,12 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -84,6 +88,7 @@ fun HomeScreen(
     var openFolder by remember { mutableStateOf<HomeEntry.Folder?>(null) }
     var menuApp by remember { mutableStateOf<AppInfo?>(null) }
     var editApp by remember { mutableStateOf<AppInfo?>(null) }
+    var confirmRemove by remember { mutableStateOf<HomeEntry?>(null) }
 
     fun launchApp(app: AppInfo) {
         val activity = context as? FragmentActivity
@@ -155,7 +160,7 @@ fun HomeScreen(
                 onLaunchApp = ::launchApp,
                 onLongClickApp = { menuApp = it },
                 onOpenFolder = { openFolder = it },
-                onRemove = { viewModel.removeItem(it) },
+                onRemove = { confirmRemove = it },
                 onDropped = { entry, x, y -> handleDrop(desktop, entry, x, y, viewModel) },
                 onCrossPage = { entry, delta, cellY ->
                     val newPage = (entry.item.page + delta).coerceAtLeast(0)
@@ -176,17 +181,25 @@ fun HomeScreen(
         )
 
         if (editMode) {
+            Text(
+                text = "Editing — drag to move, ✕ to remove, drag past the edge for the next page",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
+            )
             Row(
                 modifier = Modifier.padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Button(onClick = ::pickWidget) { Text(stringResource(R.string.add_widget)) }
-                Button(onClick = {
+                OutlinedButton(onClick = {
                     context.startActivity(
                         Intent(context, SettingsActivity::class.java)
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                     )
                 }) { Text(stringResource(R.string.settings_title)) }
+                Button(onClick = { viewModel.setEditMode(false) }) { Text("Done") }
             }
         }
 
@@ -198,6 +211,7 @@ fun HomeScreen(
             Dock(
                 apps = dockApps,
                 onAppClick = ::launchApp,
+                onAppLongClick = { menuApp = it },
                 iconSize = settings.iconSizeDp.dp,
             )
             SearchPill(hint = stringResource(R.string.search_hint), onClick = onOpenDrawer)
@@ -223,6 +237,11 @@ fun HomeScreen(
             onToggleLock = { viewModel.setLocked(app, !app.locked); menuApp = null },
             onAddToHome = { viewModel.addToHome(app); menuApp = null },
             onUninstall = { uninstall(context, app); menuApp = null },
+            inDock = viewModel.isInDock(app),
+            onToggleDock = {
+                if (viewModel.isInDock(app)) viewModel.removeFromDock(app) else viewModel.addToDock(app)
+                menuApp = null
+            },
         )
     }
 
@@ -234,6 +253,27 @@ fun HomeScreen(
                 viewModel.setLabel(app, label)
                 viewModel.setCategoryOverride(app, category.takeIf { it != app.category })
                 editApp = null
+            },
+        )
+    }
+
+    confirmRemove?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { confirmRemove = null },
+            title = { Text("Remove from home?") },
+            text = {
+                val name = (entry as? HomeEntry.App)?.app?.label
+                    ?: (entry as? HomeEntry.Folder)?.folder?.title
+                    ?: "this item"
+                Text("Remove “$name” from the home screen? The app stays installed.")
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.removeItem(entry); confirmRemove = null }) {
+                    Text("Remove")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRemove = null }) { Text("Cancel") }
             },
         )
     }

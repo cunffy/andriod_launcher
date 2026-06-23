@@ -1,5 +1,10 @@
 package com.cunffy.launcher.ui.home
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -26,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,10 +74,23 @@ fun HomeItemView(
     val baseX = entry.item.cellX * cellWpx
     val baseY = entry.item.cellY * cellHpx
 
+    // Jiggle + slight shrink while editing, so it clearly feels like edit mode.
+    val wobble = rememberInfiniteTransition(label = "wobble")
+    val swing by wobble.animateFloat(
+        initialValue = -2f,
+        targetValue = 2f,
+        animationSpec = infiniteRepeatable(tween(150), RepeatMode.Reverse),
+        label = "swing",
+    )
+    val dir = if (entry.item.id % 2L == 0L) 1f else -1f
+    val angle = if (editMode) swing * dir else 0f
+    val itemScale = if (editMode) 0.94f else 1f
+
     Box(
         modifier = Modifier
             .offset { IntOffset((baseX + drag.x).roundToInt(), (baseY + drag.y).roundToInt()) }
             .size(cellW * spanX, cellH * spanY)
+            .graphicsLayer { rotationZ = angle; scaleX = itemScale; scaleY = itemScale }
             .then(
                 if (editMode) {
                     Modifier.pointerInput(entry.item.id) {

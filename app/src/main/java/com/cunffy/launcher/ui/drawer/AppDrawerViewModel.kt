@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.cunffy.launcher.data.apps.AppCatalog
 import com.cunffy.launcher.data.apps.AppCategory
 import com.cunffy.launcher.data.apps.AppInfo
+import com.cunffy.launcher.data.apps.DockRepository
 import com.cunffy.launcher.data.customization.CustomizationRepository
 import com.cunffy.launcher.data.home.HomeLayoutRepository
 import com.cunffy.launcher.data.prefs.LauncherPreferences
@@ -24,6 +25,7 @@ class AppDrawerViewModel @Inject constructor(
     private val appCatalog: AppCatalog,
     private val customizationRepository: CustomizationRepository,
     private val homeLayoutRepository: HomeLayoutRepository,
+    private val dockRepository: DockRepository,
     preferences: LauncherPreferences,
 ) : ViewModel() {
 
@@ -31,6 +33,9 @@ class AppDrawerViewModel @Inject constructor(
 
     val settings = preferences.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LauncherSettings())
+
+    val dockKeys = dockRepository.dockKeys
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _selectedCategory = MutableStateFlow(AppCategory.ALL)
     val selectedCategory = _selectedCategory.asStateFlow()
@@ -70,5 +75,11 @@ class AppDrawerViewModel @Inject constructor(
 
     fun addToHome(app: AppInfo) = viewModelScope.launch {
         homeLayoutRepository.addApp(app.componentKey, cellX = 0, cellY = 0)
+    }
+
+    fun isInDock(app: AppInfo): Boolean = dockKeys.value.contains(app.componentKey)
+
+    fun toggleDock(app: AppInfo) = viewModelScope.launch {
+        if (isInDock(app)) dockRepository.remove(app) else dockRepository.add(app)
     }
 }

@@ -167,6 +167,8 @@ fun AppDrawerScreen(
             onToggleLock = { drawerViewModel.setLocked(app, !app.locked); menuApp = null },
             onAddToHome = { drawerViewModel.addToHome(app); menuApp = null },
             onUninstall = { uninstall(context, app); menuApp = null },
+            inDock = drawerViewModel.isInDock(app),
+            onToggleDock = { drawerViewModel.toggleDock(app); menuApp = null },
         )
     }
 

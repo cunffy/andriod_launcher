@@ -22,6 +22,7 @@ fun Dock(
     apps: List<AppInfo>,
     onAppClick: (AppInfo) -> Unit,
     modifier: Modifier = Modifier,
+    onAppLongClick: ((AppInfo) -> Unit)? = null,
     iconSize: Dp = 52.dp,
 ) {
     if (apps.isEmpty()) return
@@ -41,6 +42,7 @@ fun Dock(
                     AppIcon(
                         app = app,
                         onClick = { onAppClick(app) },
+                        onLongClick = onAppLongClick?.let { cb -> { cb(app) } },
                         showLabel = false,
                         labelColor = Color.White,
                         iconSize = resolved,

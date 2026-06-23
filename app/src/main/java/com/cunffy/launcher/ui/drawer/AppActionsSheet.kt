@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddToHomeScreen
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Info
@@ -40,6 +41,8 @@ fun AppActionsSheet(
     onToggleLock: () -> Unit,
     onAddToHome: () -> Unit,
     onUninstall: () -> Unit,
+    inDock: Boolean = false,
+    onToggleDock: (() -> Unit)? = null,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
@@ -50,6 +53,10 @@ fun AppActionsSheet(
             )
             ActionRow(Icons.Rounded.Edit, "Edit") { onEdit() }
             ActionRow(Icons.Rounded.AddToHomeScreen, "Add to home") { onAddToHome() }
+            if (onToggleDock != null) {
+                val label = if (inDock) "Remove from dock" else "Add to dock"
+                ActionRow(Icons.Rounded.Star, label) { onToggleDock() }
+            }
             if (app.hidden) {
                 ActionRow(Icons.Rounded.Visibility, "Unhide") { onToggleHide() }
             } else {
