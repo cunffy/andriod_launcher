@@ -55,6 +55,10 @@ class SettingsViewModel @Inject constructor(
         preferences.setThemedIcons(enabled)
     }
 
+    fun setIconShape(shape: com.cunffy.launcher.data.prefs.IconShape) = viewModelScope.launch {
+        preferences.setIconShape(shape)
+    }
+
     fun setThemeMode(mode: com.cunffy.launcher.data.prefs.ThemeMode) = viewModelScope.launch {
         preferences.setThemeMode(mode)
     }

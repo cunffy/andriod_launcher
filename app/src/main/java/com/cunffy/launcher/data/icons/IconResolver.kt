@@ -6,21 +6,24 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
+import android.graphics.RectF
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Build
+import com.cunffy.launcher.data.prefs.IconShape
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Produces the final icon for an app, applying (in priority order): a selected icon pack,
- * then wallpaper-themed monochrome styling, else the stock icon normalized to a uniform
- * circle — the cohesive Pixel-launcher look. Failures fall back to the stock icon so a bad
- * pack never blanks the drawer.
+ * then wallpaper-themed monochrome styling, else the stock icon — normalized to the user's
+ * chosen [IconShape] (circle, squircle, rounded square, square) for a cohesive look.
+ * Failures fall back to the stock icon so a bad pack never blanks the drawer.
  */
 @Singleton
 class IconResolver @Inject constructor(
@@ -32,53 +35,68 @@ class IconResolver @Inject constructor(
         baseIcon: Drawable,
         iconPackPackage: String?,
         themed: Boolean,
+        shape: IconShape,
     ): Drawable {
         if (iconPackPackage != null && iconPackRepository.isInstalled(iconPackPackage)) {
             // Icon packs ship their own shape; pass them through untouched.
             iconPackRepository.pack(iconPackPackage).getIcon(component)?.let { return it }
         }
         if (themed) {
-            themedMonochrome(baseIcon)?.let { return it }
+            themedMonochrome(baseIcon, shape)?.let { return it }
         }
-        return runCatching { circular(baseIcon) }.getOrDefault(baseIcon)
+        return runCatching { shaped(baseIcon, shape) }.getOrDefault(baseIcon)
     }
 
     /**
-     * Renders any icon into a uniform circle, like the Pixel launcher: adaptive icons are
-     * masked to the circle; legacy icons are centered on a white circle so they match.
+     * Renders any icon into the chosen [shape], like the Pixel launcher: adaptive icons are
+     * masked to the shape; legacy icons are centered on a white backing so they match.
      */
-    private fun circular(base: Drawable): Drawable {
+    private fun shaped(base: Drawable, shape: IconShape): Drawable {
         val src = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
         val srcCanvas = Canvas(src)
         if (base is AdaptiveIconDrawable) {
             base.setBounds(0, 0, SIZE, SIZE)
             base.draw(srcCanvas)
         } else {
-            // Legacy icon: white backing + inset glyph so it fills the circle like adaptive ones.
             srcCanvas.drawColor(Color.WHITE)
             val inset = (SIZE * LEGACY_INSET).toInt()
             base.setBounds(inset, inset, SIZE - inset, SIZE - inset)
             base.draw(srcCanvas)
         }
-        return BitmapDrawable(context.resources, maskToCircle(src))
+        return BitmapDrawable(context.resources, maskToShape(src, shape))
     }
 
-    /** Antialiased circular crop of [src]. */
-    private fun maskToCircle(src: Bitmap): Bitmap {
+    /** Antialiased crop of [src] to [shape]. */
+    private fun maskToShape(src: Bitmap, shape: IconShape): Bitmap {
         val out = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        canvas.drawCircle(SIZE / 2f, SIZE / 2f, SIZE / 2f, paint)
+        canvas.drawPath(shapePath(shape), paint)
         paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
         canvas.drawBitmap(src, 0f, 0f, paint)
         return out
     }
 
+    private fun shapePath(shape: IconShape): Path {
+        val s = SIZE.toFloat()
+        val path = Path()
+        when (shape) {
+            IconShape.CIRCLE -> path.addCircle(s / 2f, s / 2f, s / 2f, Path.Direction.CW)
+            IconShape.SQUIRCLE ->
+                path.addRoundRect(RectF(0f, 0f, s, s), s * 0.42f, s * 0.42f, Path.Direction.CW)
+            IconShape.ROUNDED_SQUARE ->
+                path.addRoundRect(RectF(0f, 0f, s, s), s * 0.22f, s * 0.22f, Path.Direction.CW)
+            IconShape.SQUARE ->
+                path.addRoundRect(RectF(0f, 0f, s, s), s * 0.08f, s * 0.08f, Path.Direction.CW)
+        }
+        return path
+    }
+
     /**
      * Builds a Material You themed icon from the adaptive icon's monochrome layer (API 33+):
-     * the system accent tints the glyph over a soft accent background, cropped to a circle.
+     * the system accent tints the glyph over a soft accent background, cropped to [shape].
      */
-    private fun themedMonochrome(base: Drawable): Drawable? {
+    private fun themedMonochrome(base: Drawable, shape: IconShape): Drawable? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return null
         if (base !is AdaptiveIconDrawable) return null
         val mono = base.monochrome ?: return null
@@ -95,7 +113,7 @@ class IconResolver @Inject constructor(
         mono.setTint(fgColor)
         mono.setTintMode(PorterDuff.Mode.SRC_IN)
         mono.draw(canvas)
-        return BitmapDrawable(res, maskToCircle(bitmap))
+        return BitmapDrawable(res, maskToShape(bitmap, shape))
     }
 
     private companion object {

@@ -46,10 +46,12 @@ class AppCatalog @Inject constructor(
             base.copy(
                 label = c?.customLabel ?: base.label,
                 category = category,
-                icon = iconResolver.resolve(base.componentName, base.icon, pack, settings.themedIcons),
+                icon = iconResolver.resolve(
+                    base.componentName, base.icon, pack, settings.themedIcons, settings.iconShape,
+                ),
                 hidden = c?.hidden == true,
                 locked = c?.locked == true,
-                iconKey = "${base.componentKey}|${pack ?: ""}|${settings.themedIcons}",
+                iconKey = "${base.componentKey}|${pack ?: ""}|${settings.themedIcons}|${settings.iconShape}",
             )
         }.sortedBy { it.label.lowercase() }
     }.stateIn(scope, SharingStarted.Eagerly, emptyList())

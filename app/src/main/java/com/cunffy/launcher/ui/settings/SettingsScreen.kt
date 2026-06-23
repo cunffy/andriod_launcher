@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cunffy.launcher.R
+import com.cunffy.launcher.data.prefs.IconShape
 import com.cunffy.launcher.data.prefs.ThemeMode
 import com.cunffy.launcher.gesture.GestureAction
 import com.cunffy.launcher.gesture.GestureSlot
@@ -89,6 +90,7 @@ fun SettingsScreen(
                 checked = settings.themedIcons,
                 onCheckedChange = viewModel::setThemedIcons,
             )
+            IconShapeRow(current = settings.iconShape, onSelect = viewModel::setIconShape)
             IconPackRow(
                 current = settings.iconPackPackage,
                 packs = iconPacks,
@@ -312,6 +314,38 @@ private fun GestureRow(
                 DropdownMenuItem(
                     text = { Text(option.label) },
                     onClick = { onSelect(slot, option); expanded = false },
+                )
+            }
+        }
+    }
+}
+
+private fun IconShape.displayName(): String =
+    name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+
+@Composable
+private fun IconShapeRow(current: IconShape, onSelect: (IconShape) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true }
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Icon shape",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(current.displayName(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            IconShape.entries.forEach { shape ->
+                DropdownMenuItem(
+                    text = { Text(shape.displayName()) },
+                    onClick = { onSelect(shape); expanded = false },
                 )
             }
         }

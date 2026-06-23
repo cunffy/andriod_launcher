@@ -19,10 +19,14 @@ private val Context.dataStore by preferencesDataStore(name = "launcher_prefs")
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+/** Mask applied to every app icon. */
+enum class IconShape { CIRCLE, SQUIRCLE, ROUNDED_SQUARE, SQUARE }
+
 /** Snapshot of all simple launcher settings, derived from DataStore. */
 data class LauncherSettings(
     val dockComponents: List<String> = emptyList(),
     val themedIcons: Boolean = false,
+    val iconShape: IconShape = IconShape.CIRCLE,
     val iconPackPackage: String? = null,
     val badgesEnabled: Boolean = true,
     val updateUrl: String? = null,
@@ -50,6 +54,7 @@ class LauncherPreferences @Inject constructor(
 ) {
     private val dockKey = stringPreferencesKey("dock_components")
     private val themedIconsKey = booleanPreferencesKey("themed_icons")
+    private val iconShapeKey = stringPreferencesKey("icon_shape")
     private val iconPackKey = stringPreferencesKey("icon_pack")
     private val badgesKey = booleanPreferencesKey("badges_enabled")
     private val updateUrlKey = stringPreferencesKey("update_url")
@@ -74,6 +79,8 @@ class LauncherPreferences @Inject constructor(
     private fun Preferences.toSettings() = LauncherSettings(
         dockComponents = this[dockKey].toComponentList(),
         themedIcons = this[themedIconsKey] ?: false,
+        iconShape = runCatching { IconShape.valueOf(this[iconShapeKey] ?: "") }
+            .getOrDefault(IconShape.CIRCLE),
         iconPackPackage = this[iconPackKey]?.ifBlank { null },
         badgesEnabled = this[badgesKey] ?: true,
         updateUrl = this[updateUrlKey]?.ifBlank { null },
@@ -101,6 +108,10 @@ class LauncherPreferences @Inject constructor(
 
     suspend fun setThemedIcons(enabled: Boolean) {
         context.dataStore.edit { it[themedIconsKey] = enabled }
+    }
+
+    suspend fun setIconShape(shape: IconShape) {
+        context.dataStore.edit { it[iconShapeKey] = shape.name }
     }
 
     suspend fun setIconPack(packageName: String?) {
