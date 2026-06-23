@@ -60,7 +60,6 @@ import com.cunffy.launcher.security.BiometricAuthenticator
 import com.cunffy.launcher.ui.components.Dock
 import com.cunffy.launcher.ui.drawer.AppActionsSheet
 import com.cunffy.launcher.ui.drawer.AppEditDialog
-import com.cunffy.launcher.ui.search.SearchPill
 import com.cunffy.launcher.ui.settings.SettingsActivity
 import com.cunffy.launcher.widgets.WidgetHostController
 import java.text.SimpleDateFormat
@@ -217,7 +216,6 @@ fun HomeScreen(
                 onAppLongClick = { menuApp = it },
                 iconSize = settings.iconSizeDp.dp,
             )
-            SearchPill(hint = stringResource(R.string.search_hint), onClick = onOpenDrawer)
         }
     }
 

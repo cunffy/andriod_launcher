@@ -27,11 +27,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -145,6 +150,49 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
                 },
         )
 
+        // Over-scrolling the app list downward (i.e. already at the top and the user keeps
+        // pulling down) drags the whole drawer closed, anywhere on screen — not just on the
+        // small handle. Pulling back up re-opens it before release.
+        val drawerNestedScroll = remember(heightPx) {
+            object : NestedScrollConnection {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                    val dy = available.y
+                    if (dy < 0f && heightPx > 0f && progress.value > 0f) {
+                        val next = (progress.value + dy / heightPx).coerceIn(0f, 1f)
+                        scope.launch { progress.snapTo(next) }
+                        return Offset(0f, dy)
+                    }
+                    return Offset.Zero
+                }
+
+                override fun onPostScroll(
+                    consumed: Offset,
+                    available: Offset,
+                    source: NestedScrollSource,
+                ): Offset {
+                    val dy = available.y
+                    if (dy > 0f && heightPx > 0f) {
+                        val next = (progress.value + dy / heightPx).coerceIn(0f, 1f)
+                        scope.launch { progress.snapTo(next) }
+                        return Offset(0f, dy)
+                    }
+                    return Offset.Zero
+                }
+
+                override suspend fun onPreFling(available: Velocity): Velocity {
+                    if (progress.value > 0f) {
+                        if (progress.value > CLOSE_THRESHOLD || available.y > 1500f) {
+                            progress.animateTo(1f, settleSpec)
+                        } else {
+                            progress.animateTo(0f, settleSpec)
+                        }
+                        return available
+                    }
+                    return Velocity.Zero
+                }
+            }
+        }
+
         // Keep the drawer composed once the size is known and just translate it; this avoids
         // re-composing the whole grid every open, which is what made opening feel slow.
         if (heightPx > 0f) {
@@ -157,7 +205,8 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .statusBarsPadding(),
+                        .statusBarsPadding()
+                        .nestedScroll(drawerNestedScroll),
                 ) {
                     DragHandle(
                         onDrag = { dy ->

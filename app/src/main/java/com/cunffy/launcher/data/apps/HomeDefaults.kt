@@ -41,6 +41,20 @@ class HomeDefaults @Inject constructor(
             ?: byLabel("files", "file manager"))
         add(byPackage("com.android.chrome") ?: byLabel("chrome", "browser"))
 
-        return result.toList()
+        // Guarantee a full bottom row even if some defaults aren't installed: top up with the
+        // first available apps so the home screen never seeds empty.
+        if (result.size < ROW_SIZE) {
+            for (app in apps) {
+                if (result.size >= ROW_SIZE) break
+                result.add(app.componentKey)
+            }
+        }
+
+        return result.take(ROW_SIZE)
+    }
+
+    private companion object {
+        /** Number of shortcuts seeded along the bottom row (one grid row). */
+        const val ROW_SIZE = 4
     }
 }
