@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -72,6 +73,7 @@ import kotlinx.coroutines.delay
  * shortcuts / folders / widgets (Room-backed), and a pinned search pill + dock. Long-pressing
  * the empty grid toggles edit mode.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeScreen(
     onOpenDrawer: () -> Unit,
@@ -190,7 +192,7 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
             )
             FlowRow(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, bottom = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
             ) {
                 Button(onClick = ::pickWidget) { Text(stringResource(R.string.add_widget)) }
