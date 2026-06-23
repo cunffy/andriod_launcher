@@ -28,7 +28,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 /**
@@ -46,14 +49,24 @@ fun SearchBar(
     hint: String,
 ) {
     val focusRequester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    // Focus + raise the keyboard when asked; release it (so it doesn't reappear on Home) otherwise.
     LaunchedEffect(autoFocus) {
-        if (autoFocus) focusRequester.requestFocus()
+        if (autoFocus) {
+            focusRequester.requestFocus()
+            keyboard?.show()
+        } else {
+            focusManager.clearFocus(force = true)
+            keyboard?.hide()
+        }
     }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         tonalElevation = 3.dp,
     ) {
         TextField(
@@ -63,7 +76,7 @@ fun SearchBar(
                 .fillMaxWidth()
                 .focusRequester(focusRequester),
             singleLine = true,
-            placeholder = { Text(hint) },
+            placeholder = { Text(hint, maxLines = 1, overflow = TextOverflow.Ellipsis) },
             leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
             trailingIcon = {
                 if (query.isNotEmpty()) {
