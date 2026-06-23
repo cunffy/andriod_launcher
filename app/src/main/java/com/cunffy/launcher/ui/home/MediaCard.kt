@@ -34,7 +34,14 @@ fun MediaCard(
     modifier: Modifier = Modifier,
     viewModel: MediaViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(Unit) { viewModel.refresh() }
+    // Poll for the active session so the card appears shortly after playback starts (and
+    // disappears when it ends), in addition to live updates while a session is bound.
+    LaunchedEffect(Unit) {
+        while (true) {
+            viewModel.refresh()
+            kotlinx.coroutines.delay(2_000)
+        }
+    }
     val nowPlaying by viewModel.nowPlaying.collectAsStateWithLifecycle()
     val playing = nowPlaying ?: return
 

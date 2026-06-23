@@ -2,6 +2,7 @@ package com.cunffy.launcher.ui.home
 
 import android.app.Activity
 import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProviderInfo
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -69,6 +70,7 @@ import com.cunffy.launcher.ui.drawer.AppActionsSheet
 import com.cunffy.launcher.ui.drawer.AppEditDialog
 import com.cunffy.launcher.ui.settings.SettingsActivity
 import com.cunffy.launcher.widgets.WidgetHostController
+import com.cunffy.launcher.widgets.WidgetPickerSheet
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -128,30 +130,76 @@ fun HomeScreen(
         }
     }
 
-    // System widget picker: allocates + binds an id, then we place it on the current page.
-    val widgetPicker = rememberLauncherForActivityResult(
+    // Custom widget picker: pick a provider, bind it (requesting permission / running its
+    // configure activity if needed), then place it on the current page.
+    var showWidgetPicker by remember { mutableStateOf(false) }
+    var pendingWidgetId by remember { mutableStateOf(-1) }
+    var pendingProvider by remember { mutableStateOf<AppWidgetProviderInfo?>(null) }
+
+    fun placeWidget(id: Int) {
+        val info = controller.providerInfo(id)
+        val spanX = ((info?.minWidth ?: 0) / WIDGET_CELL_PX + 1).coerceIn(1, settings.gridColumns)
+        val spanY = ((info?.minHeight ?: 0) / WIDGET_CELL_PX + 1).coerceIn(1, settings.gridRows)
+        viewModel.addWidget(id, spanX, spanY, 0, 0, pendingWidgetPage)
+        pendingWidgetId = -1
+        pendingProvider = null
+    }
+
+    val widgetConfigureLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val id = result.data?.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1) ?: -1
-            if (id != -1) {
-                val info = controller.providerInfo(id)
-                val spanX = ((info?.minWidth ?: 0) / WIDGET_CELL_PX + 1)
-                    .coerceIn(1, settings.gridColumns)
-                val spanY = ((info?.minHeight ?: 0) / WIDGET_CELL_PX + 1)
-                    .coerceIn(1, settings.gridRows)
-                viewModel.addWidget(id, spanX, spanY, 0, 0, pendingWidgetPage)
-            }
+        val id = pendingWidgetId
+        if (id != -1) {
+            if (result.resultCode == Activity.RESULT_OK) placeWidget(id)
+            else { controller.deleteId(id); pendingWidgetId = -1 }
         }
     }
 
-    fun pickWidget() {
+    fun afterBound(id: Int, info: AppWidgetProviderInfo) {
+        val configure = info.configure
+        if (configure != null) {
+            val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE)
+                .setComponent(configure)
+                .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
+            val launched = runCatching { widgetConfigureLauncher.launch(intent); true }
+                .getOrDefault(false)
+            if (!launched) placeWidget(id)
+        } else {
+            placeWidget(id)
+        }
+    }
+
+    val widgetBindLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val id = pendingWidgetId
+        val info = pendingProvider
+        if (result.resultCode == Activity.RESULT_OK && id != -1 && info != null) {
+            afterBound(id, info)
+        } else if (id != -1) {
+            controller.deleteId(id); pendingWidgetId = -1
+        }
+    }
+
+    fun chooseWidget(info: AppWidgetProviderInfo) {
+        showWidgetPicker = false
         pendingWidgetPage = pagerState.currentPage
         val id = controller.allocateId()
-        val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_PICK)
-            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
-        widgetPicker.launch(intent)
+        pendingWidgetId = id
+        pendingProvider = info
+        if (controller.bindIfAllowed(id, info.provider)) {
+            afterBound(id, info)
+        } else {
+            val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_BIND)
+                .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
+                .putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER, info.provider)
+            val launched = runCatching { widgetBindLauncher.launch(intent); true }
+                .getOrDefault(false)
+            if (!launched) { controller.deleteId(id); pendingWidgetId = -1 }
+        }
     }
+
+    fun pickWidget() { showWidgetPicker = true }
 
     Column(
         modifier = modifier
@@ -318,6 +366,14 @@ fun HomeScreen(
             dismissButton = {
                 TextButton(onClick = { confirmRemove = null }) { Text("Cancel") }
             },
+        )
+    }
+
+    if (showWidgetPicker) {
+        WidgetPickerSheet(
+            controller = controller,
+            onDismiss = { showWidgetPicker = false },
+            onPick = { chooseWidget(it) },
         )
     }
 }

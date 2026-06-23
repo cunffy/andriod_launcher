@@ -26,6 +26,15 @@ class WidgetHostController(context: Context) {
 
     fun deleteId(widgetId: Int) = runCatching { host.deleteAppWidgetId(widgetId) }
 
+    /** All widget providers installed on the device (for the custom widget picker). */
+    fun installedProviders(): List<AppWidgetProviderInfo> =
+        runCatching { appWidgetManager.installedProviders }.getOrDefault(emptyList())
+
+    /** Binds [widgetId] to [provider] if the launcher already holds bind permission. */
+    fun bindIfAllowed(widgetId: Int, provider: android.content.ComponentName): Boolean =
+        runCatching { appWidgetManager.bindAppWidgetIdIfAllowed(widgetId, provider) }
+            .getOrDefault(false)
+
     fun providerInfo(widgetId: Int): AppWidgetProviderInfo? =
         appWidgetManager.getAppWidgetInfo(widgetId)
 

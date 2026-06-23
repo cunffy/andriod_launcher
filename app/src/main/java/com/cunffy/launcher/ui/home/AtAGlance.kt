@@ -29,6 +29,14 @@ fun AtAGlance(
     modifier: Modifier = Modifier,
     viewModel: GlanceViewModel = hiltViewModel(),
 ) {
+    // Re-fetch periodically so it fills in once location/calendar permissions are granted and
+    // stays current as weather and the next event change.
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        while (true) {
+            viewModel.refresh()
+            kotlinx.coroutines.delay(60_000)
+        }
+    }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val weather = state.weather
     val event = state.event
