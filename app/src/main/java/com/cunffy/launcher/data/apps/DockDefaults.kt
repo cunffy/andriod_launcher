@@ -2,7 +2,6 @@ package com.cunffy.launcher.data.apps
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.provider.ContactsContract
 import android.provider.Telephony
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -10,42 +9,39 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Computes a sensible default dock when the user hasn't customized one: the apps people
- * actually keep handy, resolved to whatever is installed. Order: contacts, messages, Spotify,
- * simPRO, Slack, then camera, photos and files — padded with other apps to fill the row.
+ * Computes the default dock: the apps the user asked to keep handy — Contacts, Messages,
+ * Spotify, simPRO, Slack — resolved to whatever is installed (by package, then by app name).
+ * Anything not installed is simply skipped; the dock is never padded with random apps.
  */
 @Singleton
 class DockDefaults @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    fun defaultKeys(apps: List<AppInfo>, size: Int = 8): List<String> {
-        val byPackage = apps.groupBy { it.packageName }
-        val ordered = LinkedHashSet<String>()
+    fun defaultKeys(apps: List<AppInfo>): List<String> {
+        val result = LinkedHashSet<String>()
 
-        fun addPackage(pkg: String?) {
-            if (pkg.isNullOrBlank() || pkg == "android") return
-            byPackage[pkg]?.firstOrNull()?.let { ordered.add(it.componentKey) }
-        }
-        fun addIntent(intent: Intent) = addPackage(resolvePackage(intent))
+        fun byPackage(pkg: String?): String? =
+            if (pkg.isNullOrBlank() || pkg == "android") null
+            else apps.firstOrNull { it.packageName == pkg }?.componentKey
 
-        // Curated, in priority order.
-        addIntent(Intent(Intent.ACTION_VIEW, ContactsContract.Contacts.CONTENT_URI))
-        addPackage(Telephony.Sms.getDefaultSmsPackage(context))
-        addPackage("com.spotify.music")
-        addPackage("com.simprogroup.simpromobile")
-        addPackage("com.Slack")
-        addIntent(Intent("android.media.action.STILL_IMAGE_CAMERA"))
-        addPackage("com.google.android.apps.photos")
-        addIntent(Intent(Intent.ACTION_VIEW).setDataAndType(Uri.EMPTY, "*/*"))
-        addPackage("com.google.android.documentsui")
-        addPackage("com.android.documentsui")
+        fun byLabel(vararg keywords: String): String? =
+            apps.firstOrNull { app ->
+                val label = app.label.lowercase()
+                keywords.any { label.contains(it) }
+            }?.componentKey
 
-        // Pad to [size] with any remaining apps so the dock is never short.
-        for (app in apps) {
-            if (ordered.size >= size) break
-            ordered.add(app.componentKey)
-        }
-        return ordered.take(size).toList()
+        fun add(key: String?) { if (key != null) result.add(key) }
+
+        // Contacts (resolve the system contacts app, else match by name).
+        add(byPackage(resolvePackage(Intent(Intent.ACTION_VIEW, ContactsContract.Contacts.CONTENT_URI)))
+            ?: byLabel("contacts"))
+        // Messages (default SMS app, else by name).
+        add(byPackage(Telephony.Sms.getDefaultSmsPackage(context)) ?: byLabel("messages", "messaging"))
+        add(byPackage("com.spotify.music") ?: byLabel("spotify"))
+        add(byPackage("com.simprogroup.simpromobile") ?: byLabel("simpro", "simpro mobile"))
+        add(byPackage("com.Slack") ?: byLabel("slack"))
+
+        return result.toList()
     }
 
     private fun resolvePackage(intent: Intent): String? = runCatching {

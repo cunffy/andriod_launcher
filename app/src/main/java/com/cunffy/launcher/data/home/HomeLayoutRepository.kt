@@ -47,6 +47,13 @@ class HomeLayoutRepository @Inject constructor(
 
     suspend fun isEmpty(): Boolean = dao.getItems().none { it.container == HomeContainer.DESKTOP }
 
+    /** Clears all placed items and folders (used by the one-time stale-layout cleanup). */
+    suspend fun resetDesktop() {
+        dao.clearItems()
+        dao.clearFolderItems()
+        dao.clearFolders()
+    }
+
     suspend fun addApp(componentKey: String, cellX: Int, cellY: Int): Long =
         dao.insertItem(
             HomeItemEntity(

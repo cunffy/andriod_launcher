@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -48,6 +49,16 @@ class HomeViewModel @Inject constructor(
 
     private val _editMode = MutableStateFlow(false)
     val editMode = _editMode.asStateFlow()
+
+    init {
+        // One-time cleanup of the old auto-seeded home layout so the desktop starts empty.
+        viewModelScope.launch {
+            if (!preferences.homeLayoutResetDone.first()) {
+                homeLayoutRepository.resetDesktop()
+                preferences.setHomeLayoutResetDone()
+            }
+        }
+    }
 
     fun setEditMode(enabled: Boolean) { _editMode.value = enabled }
 
