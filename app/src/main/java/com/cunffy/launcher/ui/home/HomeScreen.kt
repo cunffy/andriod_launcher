@@ -36,12 +36,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,7 +73,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * Home screen drawn over the wallpaper: clock + At-a-Glance, a drag-and-drop grid of app
@@ -87,7 +86,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val dockApps by viewModel.dockApps.collectAsStateWithLifecycle()
     val desktop by viewModel.desktop.collectAsStateWithLifecycle()
     val badgeCounts by viewModel.badgeCounts.collectAsStateWithLifecycle()
@@ -113,11 +111,22 @@ fun HomeScreen(
         }
     }
 
-    // Pages: one per used page index, plus a trailing blank page while editing.
-    val basePages = (desktop.maxOfOrNull { it.item.page } ?: 0) + 1
-    val pageCount = if (editMode) basePages + 1 else basePages
+    // Pages are an explicit, saved count (so added/empty pages persist), but never fewer
+    // than the highest page an item actually sits on.
+    val itemPages = (desktop.maxOfOrNull { it.item.page } ?: 0) + 1
+    val pageCount = maxOf(settings.homePageCount, itemPages)
     val pagerState = rememberPagerState(pageCount = { pageCount })
     var pendingWidgetPage by remember { mutableStateOf(0) }
+    // Page to follow once the pager has grown (after Add page / a cross-page move).
+    var pendingScrollPage by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(pageCount, pendingScrollPage) {
+        pendingScrollPage?.let { target ->
+            if (target in 0 until pageCount) {
+                pagerState.animateScrollToPage(target)
+                pendingScrollPage = null
+            }
+        }
+    }
 
     // System widget picker: allocates + binds an id, then we place it on the current page.
     val widgetPicker = rememberLauncherForActivityResult(
@@ -179,9 +188,11 @@ fun HomeScreen(
                     } else {
                         (settings.gridColumns - entry.item.spanX).coerceAtLeast(0)
                     }
+                    // Dragging past the last page creates (and persists) a new page.
+                    if (newPage >= pageCount) viewModel.setHomePageCount(newPage + 1)
                     viewModel.moveItemToPage(entry.item, newPage, newCellX, cellY)
-                    // Follow the item to its new page so the move is visible.
-                    scope.launch { pagerState.animateScrollToPage(newPage) }
+                    // Follow the item to its page once the pager reflects the move.
+                    pendingScrollPage = newPage
                 },
             )
         }
@@ -202,7 +213,8 @@ fun HomeScreen(
             )
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 tonalElevation = 4.dp,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             ) {
@@ -211,7 +223,9 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
                     EditAction(Icons.Rounded.AddCircleOutline, "Add page") {
-                        scope.launch { pagerState.animateScrollToPage(pageCount - 1) }
+                        // Add a real, persisted page and jump to it.
+                        viewModel.setHomePageCount(pageCount + 1)
+                        pendingScrollPage = pageCount
                     }
                     EditAction(Icons.Rounded.Widgets, "Widget", onClick = ::pickWidget)
                     EditAction(Icons.Rounded.Wallpaper, "Wallpaper") {

@@ -67,6 +67,10 @@ class HomeViewModel @Inject constructor(
 
     fun setEditMode(enabled: Boolean) { _editMode.value = enabled }
 
+    fun setHomePageCount(count: Int) = viewModelScope.launch {
+        preferences.setHomePageCount(count)
+    }
+
     fun launch(app: AppInfo) = appCatalog.launch(app)
 
     fun moveItem(item: HomeItemEntity, cellX: Int, cellY: Int) = viewModelScope.launch {

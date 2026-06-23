@@ -40,6 +40,7 @@ data class LauncherSettings(
     val clock24h: Boolean = false,
     val gridColumns: Int = 4,
     val gridRows: Int = 5,
+    val homePageCount: Int = 1,
     val gestures: Map<GestureSlot, GestureAction> =
         GestureSlot.entries.associateWith { it.defaultAction },
 )
@@ -69,6 +70,7 @@ class LauncherPreferences @Inject constructor(
     private val clock24hKey = booleanPreferencesKey("clock_24h")
     private val gridColumnsKey = intPreferencesKey("grid_columns")
     private val gridRowsKey = intPreferencesKey("grid_rows")
+    private val homePageCountKey = intPreferencesKey("home_page_count")
     private fun gestureKey(slot: GestureSlot) = stringPreferencesKey("gesture_${slot.name}")
 
     val settings: Flow<LauncherSettings> = context.dataStore.data.map { it.toSettings() }
@@ -94,6 +96,7 @@ class LauncherPreferences @Inject constructor(
         clock24h = this[clock24hKey] ?: false,
         gridColumns = this[gridColumnsKey] ?: 4,
         gridRows = this[gridRowsKey] ?: 5,
+        homePageCount = this[homePageCountKey] ?: 1,
         gestures = GestureSlot.entries.associateWith { slot ->
             GestureAction.fromName(this[gestureKey(slot)] ?: slot.defaultAction.name)
         },
@@ -168,6 +171,10 @@ class LauncherPreferences @Inject constructor(
 
     suspend fun setGridRows(rows: Int) {
         context.dataStore.edit { it[gridRowsKey] = rows.coerceIn(4, 8) }
+    }
+
+    suspend fun setHomePageCount(count: Int) {
+        context.dataStore.edit { it[homePageCountKey] = count.coerceIn(1, 9) }
     }
 
     val onboardingComplete: Flow<Boolean> =
