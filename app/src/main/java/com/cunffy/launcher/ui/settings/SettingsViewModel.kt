@@ -99,6 +99,10 @@ class SettingsViewModel @Inject constructor(
         preferences.setDrawerLabels(enabled)
     }
 
+    fun setHomeLabels(enabled: Boolean) = viewModelScope.launch {
+        preferences.setHomeLabels(enabled)
+    }
+
     fun setSearchAutoFocus(enabled: Boolean) = viewModelScope.launch {
         preferences.setSearchAutoFocus(enabled)
     }

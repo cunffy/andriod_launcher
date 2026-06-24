@@ -168,6 +168,12 @@ fun SettingsScreen(
                 onCheckedChange = viewModel::setDrawerLabels,
             )
             SwitchRow(
+                title = "App labels on home",
+                subtitle = "Show names under home-screen icons",
+                checked = settings.showHomeLabels,
+                onCheckedChange = viewModel::setHomeLabels,
+            )
+            SwitchRow(
                 title = "Focus search on open",
                 subtitle = "Pop up the keyboard when the drawer opens",
                 checked = settings.searchAutoFocus,

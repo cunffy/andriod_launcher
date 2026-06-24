@@ -60,6 +60,7 @@ fun HomeItemView(
     editMode: Boolean,
     controller: WidgetHostController,
     badgeCount: Int,
+    showLabel: Boolean = true,
     onLaunchApp: (AppInfo) -> Unit,
     onLongClickApp: (AppInfo) -> Unit,
     onOpenFolder: (HomeEntry.Folder) -> Unit,
@@ -135,6 +136,7 @@ fun HomeItemView(
                     null
                 },
                 labelColor = Color.White,
+                showLabel = showLabel,
                 badgeCount = badgeCount,
             )
             is HomeEntry.Folder -> FolderTile(

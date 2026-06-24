@@ -40,6 +40,7 @@ data class LauncherSettings(
     val wallpaperDim: Int = 0,
     val iconSizeDp: Int = 52,
     val showDrawerLabels: Boolean = true,
+    val showHomeLabels: Boolean = true,
     val showAtAGlance: Boolean = true,
     val showMediaCard: Boolean = true,
     val clockSizeSp: Int = 64,
@@ -82,6 +83,7 @@ class LauncherPreferences @Inject constructor(
     private val wallpaperDimKey = intPreferencesKey("wallpaper_dim")
     private val iconSizeKey = intPreferencesKey("icon_size")
     private val drawerLabelsKey = booleanPreferencesKey("drawer_labels")
+    private val homeLabelsKey = booleanPreferencesKey("home_labels")
     private val searchAutoFocusKey = booleanPreferencesKey("search_autofocus")
     private val clock24hKey = booleanPreferencesKey("clock_24h")
     private val gridColumnsKey = intPreferencesKey("grid_columns")
@@ -110,6 +112,7 @@ class LauncherPreferences @Inject constructor(
         wallpaperDim = this[wallpaperDimKey] ?: 0,
         iconSizeDp = this[iconSizeKey] ?: 52,
         showDrawerLabels = this[drawerLabelsKey] ?: true,
+        showHomeLabels = this[homeLabelsKey] ?: true,
         showAtAGlance = this[showGlanceKey] ?: true,
         showMediaCard = this[showMediaKey] ?: true,
         clockSizeSp = this[clockSizeKey] ?: 64,
@@ -202,6 +205,10 @@ class LauncherPreferences @Inject constructor(
 
     suspend fun setDrawerLabels(enabled: Boolean) {
         context.dataStore.edit { it[drawerLabelsKey] = enabled }
+    }
+
+    suspend fun setHomeLabels(enabled: Boolean) {
+        context.dataStore.edit { it[homeLabelsKey] = enabled }
     }
 
     suspend fun setSearchAutoFocus(enabled: Boolean) {

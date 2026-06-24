@@ -37,8 +37,12 @@ class IconResolver @Inject constructor(
         shape: IconShape,
     ): Drawable {
         if (iconPackPackage != null && iconPackRepository.isInstalled(iconPackPackage)) {
+            val pack = iconPackRepository.pack(iconPackPackage)
             // Icon packs ship their own shape; pass them through untouched.
-            iconPackRepository.pack(iconPackPackage).getIcon(component)?.let { return it }
+            pack.getIcon(component)?.let { return it }
+            // No explicit icon: style the stock icon with the pack's back/mask so it still
+            // matches the pack instead of standing out as a plain system icon.
+            pack.maskSystemIcon(baseIcon, component)?.let { return it }
         }
         if (themed) {
             themedMonochrome(baseIcon, shape)?.let { return it }

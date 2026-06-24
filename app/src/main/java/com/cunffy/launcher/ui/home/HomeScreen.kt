@@ -235,6 +235,7 @@ fun HomeScreen(
                 editMode = editMode,
                 controller = controller,
                 badgeCounts = badgeCounts,
+                showLabels = settings.showHomeLabels,
                 onToggleEdit = { viewModel.setEditMode(!editMode) },
                 onLaunchApp = ::launchApp,
                 onLongClickApp = { menuApp = it },
@@ -483,6 +484,7 @@ private fun HomeGridPage(
     editMode: Boolean,
     controller: WidgetHostController,
     badgeCounts: Map<String, Int>,
+    showLabels: Boolean,
     onToggleEdit: () -> Unit,
     onLaunchApp: (AppInfo) -> Unit,
     onLongClickApp: (AppInfo) -> Unit,
@@ -522,6 +524,7 @@ private fun HomeGridPage(
                     controller = controller,
                     badgeCount = (entry as? HomeEntry.App)
                         ?.let { badgeCounts[it.app.packageName] } ?: 0,
+                    showLabel = showLabels,
                     onLaunchApp = onLaunchApp,
                     onLongClickApp = onLongClickApp,
                     onOpenFolder = onOpenFolder,
