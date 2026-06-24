@@ -25,13 +25,23 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- Self-update: install downloaded APKs. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <!-- Read icon packs installed as themes. -->
+    <!-- Read icon packs installed as themes (one <intent> per launcher's theme action so
+         packs stay visible even where QUERY_ALL_PACKAGES is restricted). -->
     <queries>
+        <intent>
+            <action android:name="com.novalauncher.THEME" />
+        </intent>
         <intent>
             <action android:name="org.adw.launcher.THEMES" />
         </intent>
         <intent>
+            <action android:name="org.adw.launcher.icons.ACTION_PICK_ICON" />
+        </intent>
+        <intent>
             <action android:name="com.gau.go.launcherex.theme" />
+        </intent>
+        <intent>
+            <action android:name="com.teslacoilsw.launcher.THEME" />
         </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />

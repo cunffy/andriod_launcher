@@ -14,6 +14,7 @@
     <string name="settings_themed_icons_summary">Tint icons to match your wallpaper</string>
     <string name="settings_icon_pack">Icon pack</string>
     <string name="settings_icon_pack_system">System default</string>
+    <string name="settings_icon_pack_none">No icon packs installed — get one from the Play Store</string>
     <string name="settings_gestures">Gestures</string>
     <string name="settings_gesture_swipe_up">Swipe up</string>
     <string name="settings_gesture_swipe_down">Swipe down</string>

@@ -16,22 +16,37 @@ class IconPackRepository @Inject constructor(
 
     /** Intent actions that icon-pack apps register so launchers can find them. */
     private val packActions = listOf(
-        "org.adw.launcher.THEMES",
-        "com.gau.go.launcherex.theme",
         "com.novalauncher.THEME",
+        "org.adw.launcher.THEMES",
+        "org.adw.launcher.icons.ACTION_PICK_ICON",
+        "com.gau.go.launcherex.theme",
+        "com.teslacoilsw.launcher.THEME",
+    )
+
+    /** Some packs (Apex-style) only advertise via a MAIN-intent category instead of an action. */
+    private val packCategories = listOf(
+        "com.anddoes.launcher.THEME",
     )
 
     fun installedPacks(): List<IconPackInfo> {
         val pm = context.packageManager
         val seen = LinkedHashMap<String, IconPackInfo>()
-        packActions.forEach { action ->
-            val intent = Intent(action)
-            pm.queryIntentActivities(intent, 0).forEach { ri ->
-                val pkg = ri.activityInfo.packageName
-                if (pkg !in seen) {
-                    seen[pkg] = IconPackInfo(pkg, ri.loadLabel(pm).toString())
-                }
+        fun add(ri: android.content.pm.ResolveInfo) {
+            val pkg = ri.activityInfo.packageName
+            if (pkg != null && pkg !in seen) {
+                seen[pkg] = IconPackInfo(pkg, ri.loadLabel(pm).toString())
             }
+        }
+        packActions.forEach { action ->
+            runCatching { pm.queryIntentActivities(Intent(action), 0) }
+                .getOrDefault(emptyList())
+                .forEach { add(it) }
+        }
+        packCategories.forEach { category ->
+            val intent = Intent(Intent.ACTION_MAIN).addCategory(category)
+            runCatching { pm.queryIntentActivities(intent, 0) }
+                .getOrDefault(emptyList())
+                .forEach { add(it) }
         }
         return seen.values.toList()
     }

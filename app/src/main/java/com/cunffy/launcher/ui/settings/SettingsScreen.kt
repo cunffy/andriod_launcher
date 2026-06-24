@@ -313,7 +313,11 @@ private fun IconPackRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.settings_icon_pack), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    currentLabel,
+                    if (packs.isEmpty()) {
+                        stringResource(R.string.settings_icon_pack_none)
+                    } else {
+                        currentLabel
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
