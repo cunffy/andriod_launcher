@@ -18,6 +18,8 @@
     <string name="settings_gesture_swipe_up">Swipe up</string>
     <string name="settings_gesture_swipe_down">Swipe down</string>
     <string name="settings_gesture_double_tap">Double tap</string>
+    <string name="settings_gesture_pinch_in">Pinch in</string>
+    <string name="settings_gesture_pinch_out">Pinch out</string>
     <string name="settings_badges">Notification badges</string>
     <string name="settings_badges_summary">Show a dot on apps with notifications</string>
     <string name="settings_notification_access">Grant notification access</string>

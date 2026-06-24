@@ -34,6 +34,9 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -118,6 +121,8 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
         val swipeUp = settings.gestures[GestureSlot.SWIPE_UP] ?: GestureAction.OPEN_DRAWER
         val swipeDown = settings.gestures[GestureSlot.SWIPE_DOWN] ?: GestureAction.EXPAND_NOTIFICATIONS
         val doubleTap = settings.gestures[GestureSlot.DOUBLE_TAP] ?: GestureAction.NONE
+        val pinchIn = settings.gestures[GestureSlot.PINCH_IN] ?: GestureAction.NONE
+        val pinchOut = settings.gestures[GestureSlot.PINCH_OUT] ?: GestureAction.NONE
         // Only drag the drawer up 1:1 when swipe-up is actually bound to opening it.
         val dragOpensDrawer = swipeUp == GestureAction.OPEN_DRAWER || swipeUp == GestureAction.OPEN_SEARCH
         HomeScreen(
@@ -126,6 +131,27 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
                 .fillMaxSize()
                 .pointerInput(doubleTap) {
                     detectTapGestures(onDoubleTap = { performGesture(doubleTap) })
+                }
+                .pointerInput(pinchIn, pinchOut) {
+                    // Two-finger pinch on the home surface (Smart Launcher style). Fires once
+                    // per gesture when the cumulative zoom crosses a comfortable threshold.
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false)
+                        var cumulative = 1f
+                        var fired = false
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            if (event.changes.count { it.pressed } >= 2) {
+                                cumulative *= event.calculateZoom()
+                                if (!fired && cumulative < 0.6f) {
+                                    performGesture(pinchIn); fired = true
+                                } else if (!fired && cumulative > 1.6f) {
+                                    performGesture(pinchOut); fired = true
+                                }
+                            }
+                            if (event.changes.none { it.pressed }) break
+                        }
+                    }
                 }
                 .pointerInput(heightPx, dragOpensDrawer) {
                     detectVerticalDragGestures(

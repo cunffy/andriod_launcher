@@ -1,9 +1,11 @@
 package com.cunffy.launcher.data.apps
 
+import android.content.Context
 import com.cunffy.launcher.data.customization.CustomizationRepository
 import com.cunffy.launcher.data.icons.IconResolver
 import com.cunffy.launcher.data.prefs.LauncherPreferences
 import com.cunffy.launcher.ui.components.IconCache
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,12 +26,18 @@ import javax.inject.Singleton
  */
 @Singleton
 class AppCatalog @Inject constructor(
+    @ApplicationContext context: Context,
     private val appRepository: AppRepository,
     customizationRepository: CustomizationRepository,
     preferences: LauncherPreferences,
     private val iconResolver: IconResolver,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    init {
+        // Point the icon cache at disk so renders survive a process death (fast cold start).
+        IconCache.initialize(context.cacheDir)
+    }
 
     /** Every app including hidden ones (used by the hidden-apps manager). */
     val allApps: StateFlow<List<AppInfo>> = combine(
@@ -43,15 +51,24 @@ class AppCatalog @Inject constructor(
                 ?.let { runCatching { AppCategory.valueOf(it) }.getOrNull() }
                 ?: base.category
             val pack = c?.iconPackPackage ?: settings.iconPackPackage
+            val iconKey =
+                "${base.componentKey}|${pack ?: ""}|${settings.themedIcons}|${settings.iconShape}"
+            // If this exact icon is already rendered on disk, skip the (expensive) re-masking —
+            // the cached bitmap will be served by iconKey when the tile is drawn.
+            val icon = if (IconCache.hasOnDisk(iconKey)) {
+                base.icon
+            } else {
+                iconResolver.resolve(
+                    base.componentName, base.icon, pack, settings.themedIcons, settings.iconShape,
+                )
+            }
             base.copy(
                 label = c?.customLabel ?: base.label,
                 category = category,
-                icon = iconResolver.resolve(
-                    base.componentName, base.icon, pack, settings.themedIcons, settings.iconShape,
-                ),
+                icon = icon,
                 hidden = c?.hidden == true,
                 locked = c?.locked == true,
-                iconKey = "${base.componentKey}|${pack ?: ""}|${settings.themedIcons}|${settings.iconShape}",
+                iconKey = iconKey,
             )
         }.sortedBy { it.label.lowercase() }
     }.stateIn(scope, SharingStarted.Eagerly, emptyList())

@@ -204,6 +204,10 @@ fun SettingsScreen(
                 settings.gestures[GestureSlot.SWIPE_DOWN] ?: GestureAction.NONE, viewModel::setGesture)
             GestureRow(GestureSlot.DOUBLE_TAP, stringResource(R.string.settings_gesture_double_tap),
                 settings.gestures[GestureSlot.DOUBLE_TAP] ?: GestureAction.NONE, viewModel::setGesture)
+            GestureRow(GestureSlot.PINCH_IN, stringResource(R.string.settings_gesture_pinch_in),
+                settings.gestures[GestureSlot.PINCH_IN] ?: GestureAction.NONE, viewModel::setGesture)
+            GestureRow(GestureSlot.PINCH_OUT, stringResource(R.string.settings_gesture_pinch_out),
+                settings.gestures[GestureSlot.PINCH_OUT] ?: GestureAction.NONE, viewModel::setGesture)
 
             SectionHeader(stringResource(R.string.settings_hidden_apps))
             Text(

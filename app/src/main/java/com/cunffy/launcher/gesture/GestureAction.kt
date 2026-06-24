@@ -21,4 +21,6 @@ enum class GestureSlot(val defaultAction: GestureAction) {
     SWIPE_UP(GestureAction.OPEN_DRAWER),
     SWIPE_DOWN(GestureAction.EXPAND_NOTIFICATIONS),
     DOUBLE_TAP(GestureAction.NONE),
+    PINCH_IN(GestureAction.OPEN_LAUNCHER_SETTINGS),
+    PINCH_OUT(GestureAction.NONE),
 }

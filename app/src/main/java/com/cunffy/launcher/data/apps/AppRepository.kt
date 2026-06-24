@@ -11,6 +11,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -60,23 +63,27 @@ class AppRepository @Inject constructor(
         scope.launch { _apps.value = loadAll() }
     }
 
-    private fun loadAll(): List<AppInfo> {
+    private suspend fun loadAll(): List<AppInfo> = coroutineScope {
         val ownPackage = context.packageName
-        return userManager.userProfiles.flatMap { user ->
+        userManager.userProfiles.flatMap { user ->
             launcherApps.getActivityList(null, user)
                 // Hide the launcher itself from its own drawer (Pixel does the same).
                 .filter { it.applicationInfo.packageName != ownPackage }
                 .map { activity ->
-                    AppInfo(
-                        label = activity.label.toString(),
-                        packageName = activity.applicationInfo.packageName,
-                        componentName = activity.componentName,
-                        user = user,
-                        category = categorizer.categorize(activity.applicationInfo),
-                        icon = activity.getBadgedIcon(0),
-                    )
+                    // Loading each icon hits the package's resources; fan out across cores so the
+                    // first cold-start paint isn't gated on icons loading one at a time.
+                    async {
+                        AppInfo(
+                            label = activity.label.toString(),
+                            packageName = activity.applicationInfo.packageName,
+                            componentName = activity.componentName,
+                            user = user,
+                            category = categorizer.categorize(activity.applicationInfo),
+                            icon = activity.getBadgedIcon(0),
+                        )
+                    }
                 }
-        }.sortedBy { it.label.lowercase() }
+        }.awaitAll().sortedBy { it.label.lowercase() }
     }
 
     /** Launch an app, anchoring its open animation to [sourceBounds] when provided. */
