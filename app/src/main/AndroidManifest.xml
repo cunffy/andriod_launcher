@@ -25,6 +25,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- Self-update: install downloaded APKs. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Drawer "recent"/"most used" sort (special access; granted in system settings). -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
     <!-- Read icon packs installed as themes (one <intent> per launcher's theme action so
          packs stay visible even where QUERY_ALL_PACKAGES is restricted). -->
     <queries>

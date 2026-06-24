@@ -283,7 +283,7 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
                 ) {
-                    EditAction(Icons.Rounded.Apps, "Apps") { showAppPicker = true }
+                    EditAction(Icons.Rounded.Apps, "Add Icon") { showAppPicker = true }
                     EditAction(Icons.Rounded.AddCircleOutline, "Add page") {
                         // Add a real, persisted page and jump to it.
                         viewModel.setHomePageCount(pageCount + 1)

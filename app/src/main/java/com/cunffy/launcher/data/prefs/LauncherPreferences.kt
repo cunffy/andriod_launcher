@@ -25,6 +25,9 @@ enum class IconShape { CIRCLE, SQUIRCLE, ROUNDED_SQUARE, SQUARE }
 /** Accent palette used when wallpaper-based dynamic color is off. */
 enum class AccentPreset { GREEN, BLUE, PURPLE, ORANGE, RED, TEAL }
 
+/** Order apps appear in the drawer. RECENT/MOST_USED need usage-access permission. */
+enum class DrawerSortMode { ALPHABETICAL, RECENT, MOST_USED }
+
 /** Snapshot of all simple launcher settings, derived from DataStore. */
 data class LauncherSettings(
     val dockComponents: List<String> = emptyList(),
@@ -41,6 +44,7 @@ data class LauncherSettings(
     val iconSizeDp: Int = 52,
     val showDrawerLabels: Boolean = true,
     val showHomeLabels: Boolean = true,
+    val drawerSort: DrawerSortMode = DrawerSortMode.ALPHABETICAL,
     val showAtAGlance: Boolean = true,
     val showMediaCard: Boolean = true,
     val clockSizeSp: Int = 64,
@@ -84,6 +88,7 @@ class LauncherPreferences @Inject constructor(
     private val iconSizeKey = intPreferencesKey("icon_size")
     private val drawerLabelsKey = booleanPreferencesKey("drawer_labels")
     private val homeLabelsKey = booleanPreferencesKey("home_labels")
+    private val drawerSortKey = stringPreferencesKey("drawer_sort")
     private val searchAutoFocusKey = booleanPreferencesKey("search_autofocus")
     private val clock24hKey = booleanPreferencesKey("clock_24h")
     private val gridColumnsKey = intPreferencesKey("grid_columns")
@@ -113,6 +118,8 @@ class LauncherPreferences @Inject constructor(
         iconSizeDp = this[iconSizeKey] ?: 52,
         showDrawerLabels = this[drawerLabelsKey] ?: true,
         showHomeLabels = this[homeLabelsKey] ?: true,
+        drawerSort = runCatching { DrawerSortMode.valueOf(this[drawerSortKey] ?: "") }
+            .getOrDefault(DrawerSortMode.ALPHABETICAL),
         showAtAGlance = this[showGlanceKey] ?: true,
         showMediaCard = this[showMediaKey] ?: true,
         clockSizeSp = this[clockSizeKey] ?: 64,
@@ -209,6 +216,10 @@ class LauncherPreferences @Inject constructor(
 
     suspend fun setHomeLabels(enabled: Boolean) {
         context.dataStore.edit { it[homeLabelsKey] = enabled }
+    }
+
+    suspend fun setDrawerSort(mode: DrawerSortMode) {
+        context.dataStore.edit { it[drawerSortKey] = mode.name }
     }
 
     suspend fun setSearchAutoFocus(enabled: Boolean) {

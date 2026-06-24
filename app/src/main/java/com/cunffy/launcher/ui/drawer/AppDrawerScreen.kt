@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Shop
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +46,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cunffy.launcher.R
 import com.cunffy.launcher.data.apps.AppInfo
+import com.cunffy.launcher.data.prefs.DrawerSortMode
 import com.cunffy.launcher.data.search.providers.WebSearchProvider
 import com.cunffy.launcher.security.BiometricAuthenticator
 import com.cunffy.launcher.ui.components.AppIcon
@@ -85,8 +87,14 @@ fun AppDrawerScreen(
     }
 
     // Each time the drawer opens, jump to the top and focus search; clear it when it closes.
+    // Also refresh usage so "recent"/"most used" ordering reflects what just happened.
     LaunchedEffect(drawerOpen) {
-        if (drawerOpen) gridState.scrollToItem(0) else searchViewModel.clear()
+        if (drawerOpen) {
+            gridState.scrollToItem(0)
+            drawerViewModel.refreshUsage()
+        } else {
+            searchViewModel.clear()
+        }
     }
 
     fun launchApp(app: AppInfo) {
@@ -148,6 +156,15 @@ fun AppDrawerScreen(
                 },
             )
         } else {
+            SortChips(
+                current = settings.drawerSort,
+                onSelect = { mode ->
+                    if (mode != DrawerSortMode.ALPHABETICAL && !drawerViewModel.hasUsagePermission()) {
+                        context.startActivity(drawerViewModel.usageAccessIntent())
+                    }
+                    drawerViewModel.setSortMode(mode)
+                },
+            )
             Row(modifier = Modifier.fillMaxSize()) {
                 LazyVerticalGrid(
                     state = gridState,
@@ -168,10 +185,13 @@ fun AppDrawerScreen(
                         )
                     }
                 }
-                AlphabetIndex(
-                    apps = apps,
-                    onLetter = { index -> scope.launch { gridState.scrollToItem(index) } },
-                )
+                // The A–Z rail only makes sense when the grid is actually alphabetical.
+                if (settings.drawerSort == DrawerSortMode.ALPHABETICAL) {
+                    AlphabetIndex(
+                        apps = apps,
+                        onLetter = { index -> scope.launch { gridState.scrollToItem(index) } },
+                    )
+                }
                 CategorySidebar(
                     categories = categories,
                     selected = selectedCategory,
@@ -210,6 +230,31 @@ fun AppDrawerScreen(
                 editApp = null
             },
         )
+    }
+}
+
+/** Sort selector for the drawer grid: alphabetical, recently used, or most used. */
+@Composable
+private fun SortChips(current: DrawerSortMode, onSelect: (DrawerSortMode) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        val options = listOf(
+            DrawerSortMode.ALPHABETICAL to "A–Z",
+            DrawerSortMode.RECENT to "Recent",
+            DrawerSortMode.MOST_USED to "Most used",
+        )
+        options.forEach { (mode, label) ->
+            FilterChip(
+                selected = current == mode,
+                onClick = { onSelect(mode) },
+                label = { Text(label) },
+            )
+        }
     }
 }
 
