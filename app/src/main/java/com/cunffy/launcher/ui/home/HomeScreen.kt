@@ -217,8 +217,12 @@ fun HomeScreen(
             .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Clock(use24h = settings.clock24h, modifier = Modifier.padding(top = 36.dp))
-        AtAGlance(modifier = Modifier.padding(top = 8.dp))
+        Clock(
+            use24h = settings.clock24h,
+            sizeSp = settings.clockSizeSp,
+            modifier = Modifier.padding(top = 36.dp),
+        )
+        if (settings.showAtAGlance) AtAGlance(modifier = Modifier.padding(top = 8.dp))
 
         HorizontalPager(
             state = pagerState,
@@ -320,7 +324,7 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            MediaCard()
+            if (settings.showMediaCard) MediaCard()
             Dock(
                 apps = dockApps,
                 onAppClick = ::launchApp,
@@ -567,7 +571,7 @@ private fun PageIndicator(pageCount: Int, currentPage: Int, modifier: Modifier =
 }
 
 @Composable
-private fun Clock(use24h: Boolean, modifier: Modifier = Modifier) {
+private fun Clock(use24h: Boolean, sizeSp: Int = 64, modifier: Modifier = Modifier) {
     val now by produceState(initialValue = Date()) {
         while (true) {
             value = Date()
@@ -581,7 +585,7 @@ private fun Clock(use24h: Boolean, modifier: Modifier = Modifier) {
         Text(
             text = timeFormat.format(now),
             color = Color.White,
-            fontSize = 64.sp,
+            fontSize = sizeSp.sp,
             fontWeight = FontWeight.Light,
             textAlign = TextAlign.Center,
         )

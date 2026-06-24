@@ -151,7 +151,7 @@ fun AppDrawerScreen(
             Row(modifier = Modifier.fillMaxSize()) {
                 LazyVerticalGrid(
                     state = gridState,
-                    columns = GridCells.Adaptive(minSize = 76.dp),
+                    columns = GridCells.Fixed(settings.drawerColumns),
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     contentPadding = PaddingValues(vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),

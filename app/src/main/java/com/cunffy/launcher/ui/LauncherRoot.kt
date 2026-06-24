@@ -213,7 +213,9 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer { translationY = progress.value * heightPx }
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)),
+                    .background(
+                        MaterialTheme.colorScheme.surface.copy(alpha = settings.drawerOpacity / 100f),
+                    ),
             ) {
                 Column(
                     modifier = Modifier

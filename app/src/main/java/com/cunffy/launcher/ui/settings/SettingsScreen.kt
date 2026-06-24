@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cunffy.launcher.R
+import com.cunffy.launcher.data.prefs.AccentPreset
 import com.cunffy.launcher.data.prefs.IconShape
 import com.cunffy.launcher.data.prefs.ThemeMode
 import com.cunffy.launcher.gesture.GestureAction
@@ -102,6 +103,39 @@ fun SettingsScreen(
                 subtitle = "Use Material You colors from your wallpaper",
                 checked = settings.dynamicColor,
                 onCheckedChange = viewModel::setDynamicColor,
+            )
+            if (!settings.dynamicColor) {
+                AccentPresetRow(current = settings.accentPreset, onSelect = viewModel::setAccentPreset)
+            }
+            SliderRow(
+                title = "Clock size",
+                value = settings.clockSizeSp,
+                range = 40..96,
+                onChange = viewModel::setClockSize,
+            )
+            SwitchRow(
+                title = "At a Glance",
+                subtitle = "Weather and next event under the clock",
+                checked = settings.showAtAGlance,
+                onCheckedChange = viewModel::setShowAtAGlance,
+            )
+            SwitchRow(
+                title = "Now playing card",
+                subtitle = "Show media controls on the home screen",
+                checked = settings.showMediaCard,
+                onCheckedChange = viewModel::setShowMediaCard,
+            )
+            SliderRow(
+                title = "App drawer columns",
+                value = settings.drawerColumns,
+                range = 3..6,
+                onChange = viewModel::setDrawerColumns,
+            )
+            SliderRow(
+                title = "Drawer opacity",
+                value = settings.drawerOpacity,
+                range = 50..100,
+                onChange = viewModel::setDrawerOpacity,
             )
             SliderRow(
                 title = "Wallpaper dim",
@@ -346,6 +380,36 @@ private fun IconShapeRow(current: IconShape, onSelect: (IconShape) -> Unit) {
                 DropdownMenuItem(
                     text = { Text(shape.displayName()) },
                     onClick = { onSelect(shape); expanded = false },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccentPresetRow(current: AccentPreset, onSelect: (AccentPreset) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    fun label(p: AccentPreset) = p.name.lowercase().replaceFirstChar { it.uppercase() }
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true }
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Accent color",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(label(current), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            AccentPreset.entries.forEach { preset ->
+                DropdownMenuItem(
+                    text = { Text(label(preset)) },
+                    onClick = { onSelect(preset); expanded = false },
                 )
             }
         }

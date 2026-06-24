@@ -22,6 +22,9 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 /** Mask applied to every app icon. */
 enum class IconShape { CIRCLE, SQUIRCLE, ROUNDED_SQUARE, SQUARE }
 
+/** Accent palette used when wallpaper-based dynamic color is off. */
+enum class AccentPreset { GREEN, BLUE, PURPLE, ORANGE, RED, TEAL }
+
 /** Snapshot of all simple launcher settings, derived from DataStore. */
 data class LauncherSettings(
     val dockComponents: List<String> = emptyList(),
@@ -32,10 +35,17 @@ data class LauncherSettings(
     val updateUrl: String? = null,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
+    val accentPreset: AccentPreset = AccentPreset.GREEN,
     /** Dim overlay over the wallpaper, 0–100 %. */
     val wallpaperDim: Int = 0,
     val iconSizeDp: Int = 52,
     val showDrawerLabels: Boolean = true,
+    val showAtAGlance: Boolean = true,
+    val showMediaCard: Boolean = true,
+    val clockSizeSp: Int = 64,
+    val drawerColumns: Int = 4,
+    /** Drawer background opacity, 50–100 %. */
+    val drawerOpacity: Int = 97,
     val searchAutoFocus: Boolean = false,
     val clock24h: Boolean = false,
     val gridColumns: Int = 4,
@@ -63,6 +73,12 @@ class LauncherPreferences @Inject constructor(
     private val homeResetKey = booleanPreferencesKey("home_layout_reset_v6")
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val dynamicColorKey = booleanPreferencesKey("dynamic_color")
+    private val accentPresetKey = stringPreferencesKey("accent_preset")
+    private val showGlanceKey = booleanPreferencesKey("show_glance")
+    private val showMediaKey = booleanPreferencesKey("show_media")
+    private val clockSizeKey = intPreferencesKey("clock_size")
+    private val drawerColumnsKey = intPreferencesKey("drawer_columns")
+    private val drawerOpacityKey = intPreferencesKey("drawer_opacity")
     private val wallpaperDimKey = intPreferencesKey("wallpaper_dim")
     private val iconSizeKey = intPreferencesKey("icon_size")
     private val drawerLabelsKey = booleanPreferencesKey("drawer_labels")
@@ -89,9 +105,16 @@ class LauncherPreferences @Inject constructor(
         themeMode = runCatching { ThemeMode.valueOf(this[themeModeKey] ?: "") }
             .getOrDefault(ThemeMode.SYSTEM),
         dynamicColor = this[dynamicColorKey] ?: true,
+        accentPreset = runCatching { AccentPreset.valueOf(this[accentPresetKey] ?: "") }
+            .getOrDefault(AccentPreset.GREEN),
         wallpaperDim = this[wallpaperDimKey] ?: 0,
         iconSizeDp = this[iconSizeKey] ?: 52,
         showDrawerLabels = this[drawerLabelsKey] ?: true,
+        showAtAGlance = this[showGlanceKey] ?: true,
+        showMediaCard = this[showMediaKey] ?: true,
+        clockSizeSp = this[clockSizeKey] ?: 64,
+        drawerColumns = this[drawerColumnsKey] ?: 4,
+        drawerOpacity = this[drawerOpacityKey] ?: 97,
         searchAutoFocus = this[searchAutoFocusKey] ?: false,
         clock24h = this[clock24hKey] ?: false,
         gridColumns = this[gridColumnsKey] ?: 4,
@@ -143,6 +166,30 @@ class LauncherPreferences @Inject constructor(
 
     suspend fun setDynamicColor(enabled: Boolean) {
         context.dataStore.edit { it[dynamicColorKey] = enabled }
+    }
+
+    suspend fun setAccentPreset(preset: AccentPreset) {
+        context.dataStore.edit { it[accentPresetKey] = preset.name }
+    }
+
+    suspend fun setShowAtAGlance(show: Boolean) {
+        context.dataStore.edit { it[showGlanceKey] = show }
+    }
+
+    suspend fun setShowMediaCard(show: Boolean) {
+        context.dataStore.edit { it[showMediaKey] = show }
+    }
+
+    suspend fun setClockSize(sp: Int) {
+        context.dataStore.edit { it[clockSizeKey] = sp.coerceIn(40, 96) }
+    }
+
+    suspend fun setDrawerColumns(columns: Int) {
+        context.dataStore.edit { it[drawerColumnsKey] = columns.coerceIn(3, 6) }
+    }
+
+    suspend fun setDrawerOpacity(percent: Int) {
+        context.dataStore.edit { it[drawerOpacityKey] = percent.coerceIn(50, 100) }
     }
 
     suspend fun setWallpaperDim(percent: Int) {

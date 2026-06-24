@@ -67,6 +67,28 @@ class SettingsViewModel @Inject constructor(
         preferences.setDynamicColor(enabled)
     }
 
+    fun setAccentPreset(preset: com.cunffy.launcher.data.prefs.AccentPreset) = viewModelScope.launch {
+        preferences.setAccentPreset(preset)
+    }
+
+    fun setShowAtAGlance(show: Boolean) = viewModelScope.launch {
+        preferences.setShowAtAGlance(show)
+    }
+
+    fun setShowMediaCard(show: Boolean) = viewModelScope.launch {
+        preferences.setShowMediaCard(show)
+    }
+
+    fun setClockSize(sp: Int) = viewModelScope.launch { preferences.setClockSize(sp) }
+
+    fun setDrawerColumns(columns: Int) = viewModelScope.launch {
+        preferences.setDrawerColumns(columns)
+    }
+
+    fun setDrawerOpacity(percent: Int) = viewModelScope.launch {
+        preferences.setDrawerOpacity(percent)
+    }
+
     fun setWallpaperDim(percent: Int) = viewModelScope.launch {
         preferences.setWallpaperDim(percent)
     }

@@ -35,5 +35,10 @@ fun LauncherThemeGate(
         ThemeMode.DARK -> true
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
-    LauncherTheme(darkTheme = darkTheme, dynamicColor = settings.dynamicColor, content = content)
+    LauncherTheme(
+        darkTheme = darkTheme,
+        dynamicColor = settings.dynamicColor,
+        accent = settings.accentPreset,
+        content = content,
+    )
 }

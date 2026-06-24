@@ -21,10 +21,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,11 +76,40 @@ fun WidgetPickerSheet(
             .sortedBy { it.appLabel.lowercase() }
     }
 
+    var query by remember { mutableStateOf("") }
+    val filtered = remember(query, groups) {
+        if (query.isBlank()) {
+            groups
+        } else {
+            groups.mapNotNull { group ->
+                val matches = group.appLabel.contains(query, ignoreCase = true) ||
+                    group.widgets.any { it.loadLabel(pm).orEmpty().contains(query, ignoreCase = true) }
+                if (!matches) return@mapNotNull null
+                if (group.appLabel.contains(query, ignoreCase = true)) {
+                    group
+                } else {
+                    group.copy(
+                        widgets = group.widgets.filter {
+                            it.loadLabel(pm).orEmpty().contains(query, ignoreCase = true)
+                        },
+                    )
+                }
+            }
+        }
+    }
+
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Text(
             text = "Widgets",
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
+        )
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            singleLine = true,
+            placeholder = { Text("Search widgets") },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
         )
         if (groups.isEmpty()) {
             Text(
@@ -92,7 +125,7 @@ fun WidgetPickerSheet(
             ),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            groups.forEach { group ->
+            filtered.forEach { group ->
                 item {
                     WidgetGroupSection(
                         group = group,
