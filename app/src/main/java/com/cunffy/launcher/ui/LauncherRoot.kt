@@ -47,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cunffy.launcher.gesture.GestureAction
 import com.cunffy.launcher.gesture.GestureSlot
 import com.cunffy.launcher.gesture.NotificationShade
+import com.cunffy.launcher.gesture.ScreenLock
 import com.cunffy.launcher.ui.drawer.AppDrawerScreen
 import com.cunffy.launcher.ui.home.HomeScreen
 import com.cunffy.launcher.ui.onboarding.OnboardingScreen
@@ -88,6 +89,7 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
             GestureAction.OPEN_DRAWER, GestureAction.OPEN_SEARCH -> open()
             GestureAction.EXPAND_NOTIFICATIONS -> NotificationShade.expand(context)
             GestureAction.EXPAND_QUICK_SETTINGS -> NotificationShade.expandQuickSettings(context)
+            GestureAction.LOCK_SCREEN -> ScreenLock.lock(context)
             GestureAction.OPEN_LAUNCHER_SETTINGS -> context.startActivity(
                 Intent(context, SettingsActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),

@@ -46,6 +46,7 @@ fun MediaCard(
     val playing = nowPlaying ?: return
 
     Surface(
+        onClick = viewModel::openApp,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,

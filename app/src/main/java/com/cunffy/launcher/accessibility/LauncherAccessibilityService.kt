@@ -27,6 +27,8 @@ class LauncherAccessibilityService : AccessibilityService() {
 
     fun expandQuickSettings(): Boolean = performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS)
 
+    fun lockScreen(): Boolean = performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
+
     companion object {
         @Volatile
         var instance: LauncherAccessibilityService? = null

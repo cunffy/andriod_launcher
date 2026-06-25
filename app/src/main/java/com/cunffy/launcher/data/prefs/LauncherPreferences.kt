@@ -20,7 +20,7 @@ private val Context.dataStore by preferencesDataStore(name = "launcher_prefs")
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 /** Mask applied to every app icon. */
-enum class IconShape { CIRCLE, SQUIRCLE, ROUNDED_SQUARE, SQUARE }
+enum class IconShape { CIRCLE, SQUIRCLE, ROUNDED_SQUARE, SQUARE, TEARDROP, HEXAGON }
 
 /** Accent palette used when wallpaper-based dynamic color is off. */
 enum class AccentPreset { GREEN, BLUE, PURPLE, ORANGE, RED, TEAL }

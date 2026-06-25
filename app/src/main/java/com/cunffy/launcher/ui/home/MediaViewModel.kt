@@ -1,17 +1,21 @@
 package com.cunffy.launcher.ui.home
 
+import android.content.Context
+import android.content.Intent
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.PlaybackState
 import androidx.lifecycle.ViewModel
 import com.cunffy.launcher.data.media.MediaSessionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 @HiltViewModel
 class MediaViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val mediaSessionRepository: MediaSessionRepository,
 ) : ViewModel() {
 
@@ -78,6 +82,21 @@ class MediaViewModel @Inject constructor(
     fun next() = controller?.transportControls?.skipToNext()
 
     fun previous() = controller?.transportControls?.skipToPrevious()
+
+    /** Open the app that owns the current session — its own now-playing UI if it offers one. */
+    fun openApp() {
+        val c = controller ?: return
+        // Prefer the session's declared activity (drops you on its player screen)…
+        c.sessionActivity?.let {
+            runCatching { it.send() }.onSuccess { return }
+        }
+        // …otherwise just launch the owning app.
+        val pkg = c.packageName ?: return
+        val launch = context.packageManager.getLaunchIntentForPackage(pkg) ?: return
+        runCatching {
+            context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
 
     override fun onCleared() {
         controller?.unregisterCallback(callback)

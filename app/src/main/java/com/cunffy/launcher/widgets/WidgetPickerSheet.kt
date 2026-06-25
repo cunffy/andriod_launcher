@@ -1,8 +1,8 @@
 package com.cunffy.launcher.widgets
 
 import android.appwidget.AppWidgetProviderInfo
-import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,13 +15,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -32,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -42,14 +45,16 @@ import com.cunffy.launcher.ui.components.rememberDrawablePainter
 
 /** One app's widgets, grouped under its name for the picker. */
 private data class WidgetGroup(
+    val packageName: String,
     val appLabel: String,
     val appIcon: Drawable?,
     val widgets: List<AppWidgetProviderInfo>,
 )
 
 /**
- * A clean, Pixel-style widget picker: every installed widget grouped under its app, with a
- * live preview, name, and grid size. Tapping a widget hands it back to be placed.
+ * Pixel-style widget picker: a scannable list of apps, each collapsed to one row showing its
+ * icon, name, and widget count. Tap an app to expand its widgets (live preview + grid size);
+ * tap a widget to place it. A search field filters by app or widget name and auto-expands hits.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,6 +73,7 @@ fun WidgetPickerSheet(
             .map { (pkg, widgets) ->
                 val appInfo = runCatching { pm.getApplicationInfo(pkg, 0) }.getOrNull()
                 WidgetGroup(
+                    packageName = pkg,
                     appLabel = appInfo?.let { pm.getApplicationLabel(it).toString() } ?: pkg,
                     appIcon = appInfo?.let { runCatching { pm.getApplicationIcon(it) }.getOrNull() },
                     widgets = widgets.sortedBy { it.loadLabel(pm).orEmpty() },
@@ -82,21 +88,22 @@ fun WidgetPickerSheet(
             groups
         } else {
             groups.mapNotNull { group ->
-                val matches = group.appLabel.contains(query, ignoreCase = true) ||
-                    group.widgets.any { it.loadLabel(pm).orEmpty().contains(query, ignoreCase = true) }
-                if (!matches) return@mapNotNull null
-                if (group.appLabel.contains(query, ignoreCase = true)) {
+                val appMatches = group.appLabel.contains(query, ignoreCase = true)
+                if (appMatches) {
                     group
                 } else {
-                    group.copy(
-                        widgets = group.widgets.filter {
-                            it.loadLabel(pm).orEmpty().contains(query, ignoreCase = true)
-                        },
-                    )
+                    val hits = group.widgets.filter {
+                        it.loadLabel(pm).orEmpty().contains(query, ignoreCase = true)
+                    }
+                    if (hits.isEmpty()) null else group.copy(widgets = hits)
                 }
             }
         }
     }
+
+    // Which apps are expanded. While searching, every shown group is expanded automatically.
+    var expanded by remember { mutableStateOf(setOf<String>()) }
+    val searching = query.isNotBlank()
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Text(
@@ -111,9 +118,10 @@ fun WidgetPickerSheet(
             placeholder = { Text("Search widgets") },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
         )
-        if (groups.isEmpty()) {
+        if (filtered.isEmpty()) {
             Text(
-                text = "No widgets are available on this device.",
+                text = if (searching) "No widgets match \"$query\"." else
+                    "No widgets are available on this device.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
@@ -123,55 +131,94 @@ fun WidgetPickerSheet(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(
                 start = 16.dp, end = 16.dp, bottom = 32.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            filtered.forEach { group ->
-                item {
-                    WidgetGroupSection(
-                        group = group,
-                        labelOf = { it.loadLabel(pm).orEmpty() },
-                        previewOf = { it.loadPreviewOrIcon(context) },
-                        onPick = onPick,
-                    )
-                }
+            items(filtered, key = { it.packageName }) { group ->
+                val isOpen = searching || group.packageName in expanded
+                WidgetGroupCard(
+                    group = group,
+                    expanded = isOpen,
+                    onToggle = {
+                        expanded = if (group.packageName in expanded) {
+                            expanded - group.packageName
+                        } else {
+                            expanded + group.packageName
+                        }
+                    },
+                    labelOf = { it.loadLabel(pm).orEmpty() },
+                    previewOf = { it.loadPreviewOrIcon(context) },
+                    onPick = onPick,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun WidgetGroupSection(
+private fun WidgetGroupCard(
     group: WidgetGroup,
+    expanded: Boolean,
+    onToggle: () -> Unit,
     labelOf: (AppWidgetProviderInfo) -> String,
     previewOf: (AppWidgetProviderInfo) -> Drawable?,
     onPick: (AppWidgetProviderInfo) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.padding(start = 4.dp),
-        ) {
-            group.appIcon?.let {
-                Image(
-                    painter = rememberDrawablePainter(it),
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)),
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggle)
+                    .padding(14.dp),
+            ) {
+                group.appIcon?.let {
+                    Image(
+                        painter = rememberDrawablePainter(it),
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)),
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = group.appLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "${group.widgets.size} widget${if (group.widgets.size == 1) "" else "s"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text = group.appLabel,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-        group.widgets.forEach { widget ->
-            WidgetRow(
-                label = labelOf(widget),
-                sizeLabel = "${widget.cellWidth()}×${widget.cellHeight()}",
-                preview = previewOf(widget)?.let { rememberDrawablePainter(it) },
-                onClick = { onPick(widget) },
-            )
+            AnimatedVisibility(visible = expanded) {
+                Column(
+                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    group.widgets.forEach { widget ->
+                        WidgetRow(
+                            label = labelOf(widget),
+                            sizeLabel = "${widget.cellWidth()}×${widget.cellHeight()}",
+                            preview = previewOf(widget),
+                            onClick = { onPick(widget) },
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -180,28 +227,27 @@ private fun WidgetGroupSection(
 private fun WidgetRow(
     label: String,
     sizeLabel: String,
-    preview: Painter?,
+    preview: Drawable?,
     onClick: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.surface),
+                    .height(110.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
                 if (preview != null) {
                     Image(
-                        painter = preview,
+                        painter = rememberDrawablePainter(preview),
                         contentDescription = label,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxWidth().padding(8.dp),

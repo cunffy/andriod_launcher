@@ -7,6 +7,7 @@ enum class GestureAction(val label: String) {
     OPEN_SEARCH("Open search"),
     EXPAND_NOTIFICATIONS("Notification shade"),
     EXPAND_QUICK_SETTINGS("Quick settings"),
+    LOCK_SCREEN("Lock screen"),
     OPEN_LAUNCHER_SETTINGS("Launcher settings"),
     ;
 

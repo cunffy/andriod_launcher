@@ -87,6 +87,30 @@ class IconResolver @Inject constructor(
                 path.addRoundRect(RectF(0f, 0f, s, s), s * 0.22f, s * 0.22f, Path.Direction.CW)
             IconShape.SQUARE ->
                 path.addRoundRect(RectF(0f, 0f, s, s), s * 0.08f, s * 0.08f, Path.Direction.CW)
+            IconShape.TEARDROP -> {
+                // Three rounded corners + one near-square corner (bottom-right), like the
+                // adaptive-icon teardrop.
+                val r = s / 2f
+                val tip = s * 0.10f
+                path.addRoundRect(
+                    RectF(0f, 0f, s, s),
+                    floatArrayOf(r, r, r, r, tip, tip, r, r),
+                    Path.Direction.CW,
+                )
+            }
+            IconShape.HEXAGON -> {
+                val cx = s / 2f
+                val cy = s / 2f
+                val radius = s / 2f
+                for (i in 0 until 6) {
+                    // Flat-top hexagon: start at -90° and step 60°.
+                    val angle = Math.toRadians((60.0 * i) - 90.0)
+                    val x = cx + radius * Math.cos(angle).toFloat()
+                    val y = cy + radius * Math.sin(angle).toFloat()
+                    if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                }
+                path.close()
+            }
         }
         return path
     }
