@@ -41,6 +41,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -64,6 +65,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cunffy.launcher.R
 import com.cunffy.launcher.data.apps.AppInfo
@@ -101,6 +105,24 @@ fun HomeScreen(
     val pickerApps by viewModel.pickerApps.collectAsStateWithLifecycle()
 
     val controller = remember { WidgetHostController(context) }
+    // The host must be listening for hosted widgets to receive their content — otherwise they
+    // render blank/non-functional. Tie it to the lifecycle so it stops while we're backgrounded.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        controller.startListening()
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> controller.startListening()
+                Lifecycle.Event.ON_STOP -> controller.stopListening()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            controller.stopListening()
+        }
+    }
     var openFolder by remember { mutableStateOf<HomeEntry.Folder?>(null) }
     var menuApp by remember { mutableStateOf<AppInfo?>(null) }
     var editApp by remember { mutableStateOf<AppInfo?>(null) }

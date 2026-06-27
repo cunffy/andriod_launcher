@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetHostView
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
 import android.content.Context
+import android.os.Bundle
 
 /**
  * Wraps [AppWidgetHost] so the launcher can host third-party home-screen widgets.
@@ -41,6 +42,21 @@ class WidgetHostController(context: Context) {
     fun createView(context: Context, widgetId: Int): AppWidgetHostView? {
         val info = providerInfo(widgetId) ?: return null
         return runCatching { host.createView(context, widgetId, info) }.getOrNull()
+    }
+
+    /**
+     * Tell the widget its on-screen size (in dp) so it can pick the right responsive layout.
+     * Without this many widgets render at a default/min size or look clipped.
+     */
+    fun updateSize(widgetId: Int, widthDp: Int, heightDp: Int) {
+        if (widthDp <= 0 || heightDp <= 0) return
+        val options = Bundle().apply {
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, widthDp)
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, widthDp)
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, heightDp)
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, heightDp)
+        }
+        runCatching { appWidgetManager.updateAppWidgetOptions(widgetId, options) }
     }
 
     companion object {
