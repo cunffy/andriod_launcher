@@ -16,7 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +26,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.size
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /** Now-playing card (Spotify and any media app) with transport controls. Hidden when idle. */
@@ -34,12 +37,23 @@ fun MediaCard(
     modifier: Modifier = Modifier,
     viewModel: MediaViewModel = hiltViewModel(),
 ) {
-    // Poll for the active session so the card appears shortly after playback starts (and
-    // disappears when it ends), in addition to live updates while a session is bound.
-    LaunchedEffect(Unit) {
-        while (true) {
-            viewModel.refresh()
-            kotlinx.coroutines.delay(2_000)
+    // Observe media sessions only while the launcher is on screen (event-driven, no polling) so
+    // it never wakes the CPU in the background.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        // Start now in case we're already resumed (the observer only fires on transitions).
+        viewModel.start()
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.start()
+                Lifecycle.Event.ON_STOP -> viewModel.stop()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.stop()
         }
     }
     val nowPlaying by viewModel.nowPlaying.collectAsStateWithLifecycle()

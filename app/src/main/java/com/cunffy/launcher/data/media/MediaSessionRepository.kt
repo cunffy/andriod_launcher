@@ -26,4 +26,18 @@ class MediaSessionRepository @Inject constructor(
     fun activeController(): MediaController? = runCatching {
         sessionManager.getActiveSessions(listenerComponent).firstOrNull()
     }.getOrNull()
+
+    /** Event-driven notification when active sessions change (media starts/stops/switches app),
+     * so we never have to poll. No-ops if notification access isn't granted. */
+    fun registerSessionsChanged(
+        listener: MediaSessionManager.OnActiveSessionsChangedListener,
+    ) = runCatching {
+        sessionManager.addOnActiveSessionsChangedListener(listener, listenerComponent)
+    }
+
+    fun unregisterSessionsChanged(
+        listener: MediaSessionManager.OnActiveSessionsChangedListener,
+    ) = runCatching {
+        sessionManager.removeOnActiveSessionsChangedListener(listener)
+    }
 }

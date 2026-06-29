@@ -28,6 +28,11 @@ class OpenMeteoWeatherProvider @Inject constructor(
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    // Weather changes slowly; cache it so At-a-Glance refreshes don't hit the network (and a
+    // fresh location fix) more than twice an hour — the dominant battery cost of this strip.
+    @Volatile private var cached: Weather? = null
+    @Volatile private var cachedAt = 0L
+
     @Serializable
     private data class Response(val current: Current? = null)
 
@@ -38,18 +43,24 @@ class OpenMeteoWeatherProvider @Inject constructor(
     )
 
     override suspend fun current(): Weather? {
-        val location = resolveLocation() ?: return null
+        val fresh = cached?.takeIf { System.currentTimeMillis() - cachedAt < CACHE_MS }
+        if (fresh != null) return fresh
+
+        val location = resolveLocation() ?: return cached
         val url = "https://api.open-meteo.com/v1/forecast" +
             "?latitude=${location.first}&longitude=${location.second}" +
             "&current=temperature_2m,weather_code"
-        val body = Http.getString(url) ?: return null
+        val body = Http.getString(url) ?: return cached
         val current = runCatching { json.decodeFromString(Response.serializer(), body) }
-            .getOrNull()?.current ?: return null
-        val temp = current.temperature_2m ?: return null
+            .getOrNull()?.current ?: return cached
+        val temp = current.temperature_2m ?: return cached
         return Weather(
             temperatureC = temp.roundToInt(),
             description = describe(current.weather_code),
-        )
+        ).also {
+            cached = it
+            cachedAt = System.currentTimeMillis()
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -105,5 +116,9 @@ class OpenMeteoWeatherProvider @Inject constructor(
         in 85..86 -> "Snow showers"
         in 95..99 -> "Thunderstorm"
         else -> "Weather"
+    }
+
+    private companion object {
+        const val CACHE_MS = 30L * 60 * 1000
     }
 }

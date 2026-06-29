@@ -39,8 +39,29 @@ class MediaViewModel @Inject constructor(
         }
     }
 
-    /** Re-binds to the current active session (call when the home screen resumes). */
-    fun refresh() {
+    // Fires when media starts/stops/switches apps, so we rebind without polling.
+    private val sessionsListener =
+        android.media.session.MediaSessionManager.OnActiveSessionsChangedListener { rebind() }
+    private var observing = false
+
+    /** Begin observing media sessions (call when the home screen becomes visible). Idempotent. */
+    fun start() {
+        if (observing) return
+        observing = true
+        mediaSessionRepository.registerSessionsChanged(sessionsListener)
+        rebind()
+    }
+
+    /** Stop observing (call when the home screen is backgrounded) so nothing runs in the dark. */
+    fun stop() {
+        if (!observing) return
+        observing = false
+        mediaSessionRepository.unregisterSessionsChanged(sessionsListener)
+        controller?.unregisterCallback(callback)
+        controller = null
+    }
+
+    private fun rebind() {
         controller?.unregisterCallback(callback)
         controller = mediaSessionRepository.activeController()
         controller?.registerCallback(callback)
@@ -99,6 +120,6 @@ class MediaViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        controller?.unregisterCallback(callback)
+        stop()
     }
 }

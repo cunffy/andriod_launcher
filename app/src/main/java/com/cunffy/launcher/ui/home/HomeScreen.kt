@@ -69,6 +69,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.cunffy.launcher.R
 import com.cunffy.launcher.data.apps.AppInfo
 import com.cunffy.launcher.data.home.HomeEntry
@@ -597,10 +598,14 @@ private fun PageIndicator(pageCount: Int, currentPage: Int, modifier: Modifier =
 
 @Composable
 private fun Clock(use24h: Boolean, sizeSp: Int = 64, modifier: Modifier = Modifier) {
-    val now by produceState(initialValue = Date()) {
-        while (true) {
-            value = Date()
-            delay(10_000)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val now by produceState(initialValue = Date(), lifecycleOwner) {
+        // Update aligned to the minute, and only while the launcher is on screen.
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                value = Date()
+                delay(60_000L - System.currentTimeMillis() % 60_000L)
+            }
         }
     }
     val timeFormat = remember(use24h) {

@@ -40,7 +40,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.cunffy.launcher.data.glance.GlanceEvent
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -58,12 +61,16 @@ fun AtAGlance(
     modifier: Modifier = Modifier,
     viewModel: GlanceViewModel = hiltViewModel(),
 ) {
-    // Re-fetch periodically so it fills in once location/calendar permissions are granted and
-    // stays current as weather and the next event change.
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        while (true) {
-            viewModel.refresh()
-            kotlinx.coroutines.delay(60_000)
+    // Refresh on each visit and occasionally while on screen — but only while the launcher is
+    // actually foreground, so it never polls (or hits the network) in the background. Weather
+    // itself is cached for ~30 min in the provider.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    androidx.compose.runtime.LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                viewModel.refresh()
+                kotlinx.coroutines.delay(15 * 60_000L)
+            }
         }
     }
     val context = LocalContext.current
