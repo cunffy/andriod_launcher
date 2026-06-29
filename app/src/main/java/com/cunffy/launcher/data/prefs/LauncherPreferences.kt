@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.cunffy.launcher.gesture.GestureAction
@@ -46,6 +47,9 @@ data class LauncherSettings(
     val showHomeLabels: Boolean = true,
     val drawerSort: DrawerSortMode = DrawerSortMode.ALPHABETICAL,
     val showAtAGlance: Boolean = true,
+    /** Pinned At-a-Glance event (calendar EVENT_ID); -1 = show the next upcoming event. */
+    val glanceEventId: Long = -1L,
+    val glanceCountdown: Boolean = false,
     val showMediaCard: Boolean = true,
     val clockSizeSp: Int = 64,
     val drawerColumns: Int = 4,
@@ -80,6 +84,8 @@ class LauncherPreferences @Inject constructor(
     private val dynamicColorKey = booleanPreferencesKey("dynamic_color")
     private val accentPresetKey = stringPreferencesKey("accent_preset")
     private val showGlanceKey = booleanPreferencesKey("show_glance")
+    private val glanceEventKey = longPreferencesKey("glance_event_id")
+    private val glanceCountdownKey = booleanPreferencesKey("glance_countdown")
     private val showMediaKey = booleanPreferencesKey("show_media")
     private val clockSizeKey = intPreferencesKey("clock_size")
     private val drawerColumnsKey = intPreferencesKey("drawer_columns")
@@ -121,6 +127,8 @@ class LauncherPreferences @Inject constructor(
         drawerSort = runCatching { DrawerSortMode.valueOf(this[drawerSortKey] ?: "") }
             .getOrDefault(DrawerSortMode.ALPHABETICAL),
         showAtAGlance = this[showGlanceKey] ?: true,
+        glanceEventId = this[glanceEventKey] ?: -1L,
+        glanceCountdown = this[glanceCountdownKey] ?: false,
         showMediaCard = this[showMediaKey] ?: true,
         clockSizeSp = this[clockSizeKey] ?: 64,
         drawerColumns = this[drawerColumnsKey] ?: 4,
@@ -184,6 +192,14 @@ class LauncherPreferences @Inject constructor(
 
     suspend fun setShowAtAGlance(show: Boolean) {
         context.dataStore.edit { it[showGlanceKey] = show }
+    }
+
+    suspend fun setGlanceEventId(id: Long) {
+        context.dataStore.edit { it[glanceEventKey] = id }
+    }
+
+    suspend fun setGlanceCountdown(enabled: Boolean) {
+        context.dataStore.edit { it[glanceCountdownKey] = enabled }
     }
 
     suspend fun setShowMediaCard(show: Boolean) {
