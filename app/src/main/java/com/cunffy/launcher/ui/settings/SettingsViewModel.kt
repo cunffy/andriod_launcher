@@ -71,6 +71,10 @@ class SettingsViewModel @Inject constructor(
         preferences.setAccentPreset(preset)
     }
 
+    fun setAccentFromWallpaper(enabled: Boolean) = viewModelScope.launch {
+        preferences.setAccentFromWallpaper(enabled)
+    }
+
     fun setShowAtAGlance(show: Boolean) = viewModelScope.launch {
         preferences.setShowAtAGlance(show)
     }

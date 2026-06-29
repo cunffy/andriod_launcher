@@ -40,6 +40,8 @@ data class LauncherSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
     val accentPreset: AccentPreset = AccentPreset.GREEN,
+    /** When dynamic color is off, derive the accent from the wallpaper's reported colors. */
+    val accentFromWallpaper: Boolean = false,
     /** Dim overlay over the wallpaper, 0–100 %. */
     val wallpaperDim: Int = 0,
     val iconSizeDp: Int = 52,
@@ -83,6 +85,7 @@ class LauncherPreferences @Inject constructor(
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val dynamicColorKey = booleanPreferencesKey("dynamic_color")
     private val accentPresetKey = stringPreferencesKey("accent_preset")
+    private val accentFromWallpaperKey = booleanPreferencesKey("accent_from_wallpaper")
     private val showGlanceKey = booleanPreferencesKey("show_glance")
     private val glanceEventKey = longPreferencesKey("glance_event_id")
     private val glanceCountdownKey = booleanPreferencesKey("glance_countdown")
@@ -120,6 +123,7 @@ class LauncherPreferences @Inject constructor(
         dynamicColor = this[dynamicColorKey] ?: true,
         accentPreset = runCatching { AccentPreset.valueOf(this[accentPresetKey] ?: "") }
             .getOrDefault(AccentPreset.GREEN),
+        accentFromWallpaper = this[accentFromWallpaperKey] ?: false,
         wallpaperDim = this[wallpaperDimKey] ?: 0,
         iconSizeDp = this[iconSizeKey] ?: 52,
         showDrawerLabels = this[drawerLabelsKey] ?: true,
@@ -188,6 +192,10 @@ class LauncherPreferences @Inject constructor(
 
     suspend fun setAccentPreset(preset: AccentPreset) {
         context.dataStore.edit { it[accentPresetKey] = preset.name }
+    }
+
+    suspend fun setAccentFromWallpaper(enabled: Boolean) {
+        context.dataStore.edit { it[accentFromWallpaperKey] = enabled }
     }
 
     suspend fun setShowAtAGlance(show: Boolean) {

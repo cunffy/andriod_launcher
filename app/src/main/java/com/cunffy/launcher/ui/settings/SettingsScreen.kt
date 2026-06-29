@@ -105,7 +105,18 @@ fun SettingsScreen(
                 onCheckedChange = viewModel::setDynamicColor,
             )
             if (!settings.dynamicColor) {
-                AccentPresetRow(current = settings.accentPreset, onSelect = viewModel::setAccentPreset)
+                SwitchRow(
+                    title = "Use wallpaper colors",
+                    subtitle = "Theme from your wallpaper — works with live wallpapers",
+                    checked = settings.accentFromWallpaper,
+                    onCheckedChange = viewModel::setAccentFromWallpaper,
+                )
+                if (!settings.accentFromWallpaper) {
+                    AccentPresetRow(
+                        current = settings.accentPreset,
+                        onSelect = viewModel::setAccentPreset,
+                    )
+                }
             }
             SliderRow(
                 title = "Clock size",

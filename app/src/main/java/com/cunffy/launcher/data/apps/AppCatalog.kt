@@ -4,7 +4,9 @@ import android.content.Context
 import com.cunffy.launcher.data.customization.CustomizationRepository
 import com.cunffy.launcher.data.icons.IconResolver
 import com.cunffy.launcher.data.prefs.LauncherPreferences
+import com.cunffy.launcher.data.theme.WallpaperColorProvider
 import com.cunffy.launcher.ui.components.IconCache
+import com.cunffy.launcher.ui.theme.argb
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +32,7 @@ class AppCatalog @Inject constructor(
     private val appRepository: AppRepository,
     customizationRepository: CustomizationRepository,
     preferences: LauncherPreferences,
+    wallpaperColorProvider: WallpaperColorProvider,
     private val iconResolver: IconResolver,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -44,7 +47,19 @@ class AppCatalog @Inject constructor(
         appRepository.apps,
         customizationRepository.customizations,
         preferences.settings,
-    ) { apps, customs, settings ->
+        wallpaperColorProvider.primaryColor,
+    ) { apps, customs, settings, wallpaperColor ->
+        // Themed-icon tint: our accent (preset or wallpaper color) when not using system dynamic
+        // color; null means fall back to the system Material You accent.
+        val themedTint: Int? = if (settings.themedIcons && !settings.dynamicColor) {
+            if (settings.accentFromWallpaper) {
+                wallpaperColor ?: settings.accentPreset.argb()
+            } else {
+                settings.accentPreset.argb()
+            }
+        } else {
+            null
+        }
         apps.map { base ->
             val c = customs[base.componentKey]
             val category = c?.categoryOverride
@@ -52,7 +67,8 @@ class AppCatalog @Inject constructor(
                 ?: base.category
             val pack = c?.iconPackPackage ?: settings.iconPackPackage
             val iconKey =
-                "${base.componentKey}|${pack ?: ""}|${settings.themedIcons}|${settings.iconShape}"
+                "${base.componentKey}|${pack ?: ""}|${settings.themedIcons}|${settings.iconShape}" +
+                    "|${themedTint ?: "sys"}"
             // If this exact icon is already rendered on disk, skip the (expensive) re-masking —
             // the cached bitmap will be served by iconKey when the tile is drawn.
             val icon = if (IconCache.hasOnDisk(iconKey)) {
@@ -60,6 +76,7 @@ class AppCatalog @Inject constructor(
             } else {
                 iconResolver.resolve(
                     base.componentName, base.icon, pack, settings.themedIcons, settings.iconShape,
+                    themedTint,
                 )
             }
             base.copy(

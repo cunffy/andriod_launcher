@@ -35,6 +35,7 @@ class IconResolver @Inject constructor(
         iconPackPackage: String?,
         themed: Boolean,
         shape: IconShape,
+        themedTint: Int? = null,
     ): Drawable {
         if (iconPackPackage != null && iconPackRepository.isInstalled(iconPackPackage)) {
             val pack = iconPackRepository.pack(iconPackPackage)
@@ -45,7 +46,7 @@ class IconResolver @Inject constructor(
             pack.maskSystemIcon(baseIcon, component)?.let { return it }
         }
         if (themed) {
-            themedMonochrome(baseIcon, shape)?.let { return it }
+            themedMonochrome(baseIcon, shape, themedTint)?.let { return it }
         }
         return runCatching { shaped(baseIcon, shape) }.getOrDefault(baseIcon)
     }
@@ -119,14 +120,17 @@ class IconResolver @Inject constructor(
      * Builds a Material You themed icon from the adaptive icon's monochrome layer (API 33+):
      * the system accent tints the glyph over a soft accent background, cropped to [shape].
      */
-    private fun themedMonochrome(base: Drawable, shape: IconShape): Drawable? {
+    private fun themedMonochrome(base: Drawable, shape: IconShape, tint: Int?): Drawable? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return null
         if (base !is AdaptiveIconDrawable) return null
         val mono = base.monochrome ?: return null
 
         val res = context.resources
-        val bgColor = res.getColor(android.R.color.system_accent1_100, context.theme)
-        val fgColor = res.getColor(android.R.color.system_accent1_700, context.theme)
+        // When the launcher uses its own accent (preset/wallpaper), tint to that; otherwise fall
+        // back to the system Material You accent so dynamic color still matches.
+        val bgColor = tint?.let { pastel(it) }
+            ?: res.getColor(android.R.color.system_accent1_100, context.theme)
+        val fgColor = tint ?: res.getColor(android.R.color.system_accent1_700, context.theme)
 
         val bitmap = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -137,6 +141,16 @@ class IconResolver @Inject constructor(
         mono.setTintMode(PorterDuff.Mode.SRC_IN)
         mono.draw(canvas)
         return BitmapDrawable(res, maskToShape(bitmap, shape))
+    }
+
+    /** A soft pastel backing for a themed icon: the accent blended heavily toward white. */
+    private fun pastel(color: Int): Int {
+        fun mix(c: Int) = (c * 0.18f + 255f * 0.82f).toInt().coerceIn(0, 255)
+        return android.graphics.Color.rgb(
+            mix(android.graphics.Color.red(color)),
+            mix(android.graphics.Color.green(color)),
+            mix(android.graphics.Color.blue(color)),
+        )
     }
 
     private companion object {

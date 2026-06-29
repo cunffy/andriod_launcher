@@ -167,7 +167,8 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
                         },
                         onDragEnd = {
                             when {
-                                dragAccum < -heightPx * SETTLE_FRACTION -> {
+                                // Opening the drawer is intentionally easy — a short flick up.
+                                dragAccum < -heightPx * OPEN_FRACTION -> {
                                     if (dragOpensDrawer) open() else { performGesture(swipeUp); close() }
                                 }
                                 dragAccum > heightPx * SETTLE_FRACTION -> {
@@ -309,4 +310,6 @@ private fun DragHandle(
 }
 
 private const val SETTLE_FRACTION = 0.15f
+// A short upward swipe (6% of the screen) is enough to open the drawer.
+private const val OPEN_FRACTION = 0.06f
 private const val CLOSE_THRESHOLD = 0.35f
