@@ -60,26 +60,31 @@ class LauncherActivity : FragmentActivity() {
 }
 
 /**
- * Pin the launcher window's refresh rate: the highest mode when [enabled], otherwise the lowest
- * (≈60Hz). Actively requesting the low mode — rather than just clearing the request — caps the
- * launcher at a battery-friendly rate even on phones that default to 144Hz globally.
+ * Hint the launcher window's refresh rate: the panel's max when [enabled], otherwise its lowest
+ * (≈60Hz). We use [WindowManager.LayoutParams.preferredRefreshRate] rather than pinning a full
+ * display mode so it cooperates with the system's "auto refresh rate" instead of fighting it —
+ * with high-refresh off and a now-idle home screen, the system can keep the rate low.
  */
 fun Activity.applyRefreshRate(enabled: Boolean) {
-    val params = window.attributes
     val display = display ?: return
     val current = display.mode ?: return
-    val modes = display.supportedModes.filter {
-        it.physicalWidth == current.physicalWidth &&
-            it.physicalHeight == current.physicalHeight
-    }
-    val target = if (enabled) {
-        modes.maxByOrNull { it.refreshRate }
+    val rates = display.supportedModes
+        .filter {
+            it.physicalWidth == current.physicalWidth &&
+                it.physicalHeight == current.physicalHeight
+        }
+        .map { it.refreshRate }
+    if (rates.isEmpty()) return
+    val rate = if (enabled) {
+        rates.max()
     } else {
-        // Lowest mode at/above 60Hz so the UI stays usable while saving power.
-        modes.filter { it.refreshRate >= 59f }.minByOrNull { it.refreshRate }
-            ?: modes.minByOrNull { it.refreshRate }
-    } ?: return
-    if (target.modeId != params.preferredDisplayModeId) {
-        window.attributes = params.apply { preferredDisplayModeId = target.modeId }
+        rates.filter { it >= 59f }.minOrNull() ?: rates.min()
+    }
+    val params = window.attributes
+    if (params.preferredRefreshRate != rate || params.preferredDisplayModeId != 0) {
+        params.preferredRefreshRate = rate
+        // Don't also pin a mode — the rate hint above lets auto-refresh do its job.
+        params.preferredDisplayModeId = 0
+        window.attributes = params
     }
 }
