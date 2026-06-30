@@ -95,6 +95,7 @@ import kotlinx.coroutines.delay
 fun HomeScreen(
     onOpenDrawer: () -> Unit,
     modifier: Modifier = Modifier,
+    onDoubleTap: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -260,6 +261,7 @@ fun HomeScreen(
                 badgeCounts = badgeCounts,
                 showLabels = settings.showHomeLabels,
                 onToggleEdit = { viewModel.setEditMode(!editMode) },
+                onDoubleTap = onDoubleTap,
                 onLaunchApp = ::launchApp,
                 onLongClickApp = { menuApp = it },
                 onOpenFolder = { openFolder = it },
@@ -509,6 +511,7 @@ private fun HomeGridPage(
     badgeCounts: Map<String, Int>,
     showLabels: Boolean,
     onToggleEdit: () -> Unit,
+    onDoubleTap: () -> Unit,
     onLaunchApp: (AppInfo) -> Unit,
     onLongClickApp: (AppInfo) -> Unit,
     onOpenFolder: (HomeEntry.Folder) -> Unit,
@@ -520,11 +523,16 @@ private fun HomeGridPage(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
+            // Long-press and double-tap share one detector — a separate parent detector would be
+            // starved because detectTapGestures consumes the initial down.
             .pointerInput(Unit) {
-                detectTapGestures(onLongPress = {
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onToggleEdit()
-                })
+                detectTapGestures(
+                    onDoubleTap = { onDoubleTap() },
+                    onLongPress = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onToggleEdit()
+                    },
+                )
             },
     ) {
         val density = LocalDensity.current

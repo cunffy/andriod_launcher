@@ -37,7 +37,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateZoom
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Velocity
@@ -129,11 +128,9 @@ fun LauncherRoot(homePressTick: Int, viewModel: LauncherViewModel = hiltViewMode
         val dragOpensDrawer = swipeUp == GestureAction.OPEN_DRAWER || swipeUp == GestureAction.OPEN_SEARCH
         HomeScreen(
             onOpenDrawer = { open() },
+            onDoubleTap = { performGesture(doubleTap) },
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(doubleTap) {
-                    detectTapGestures(onDoubleTap = { performGesture(doubleTap) })
-                }
                 .pointerInput(pinchIn, pinchOut) {
                     // Two-finger pinch on the home surface (Smart Launcher style). Fires once
                     // per gesture when the cumulative zoom crosses a comfortable threshold.
