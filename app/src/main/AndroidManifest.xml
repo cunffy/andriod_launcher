@@ -131,6 +131,15 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <!-- Receives the result of a self-update install (seamless on Android 12+). -->
+        <receiver
+            android:name=".data.update.InstallResultReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.cunffy.launcher.INSTALL_RESULT" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

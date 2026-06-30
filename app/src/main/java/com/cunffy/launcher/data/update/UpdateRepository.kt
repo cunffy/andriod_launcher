@@ -1,9 +1,10 @@
 package com.cunffy.launcher.data.update
 
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageInstaller
 import android.os.Build
-import androidx.core.content.FileProvider
 import com.cunffy.launcher.BuildConfig
 import com.cunffy.launcher.core.Http
 import com.cunffy.launcher.data.prefs.LauncherPreferences
@@ -49,13 +50,41 @@ class UpdateRepository @Inject constructor(
         return if (Http.download(manifest.apkUrl, target)) target else null
     }
 
-    /** Launches the system installer for a downloaded APK. */
+    /**
+     * Installs a downloaded APK via [PackageInstaller]. Because this is the launcher updating
+     * *itself* with the same signing key, on Android 12+ we request USER_ACTION_NOT_REQUIRED so
+     * the update applies seamlessly — no "scan / confirm" prompt each time. If the system still
+     * requires confirmation, [InstallResultReceiver] surfaces the one-tap dialog as a fallback.
+     */
     fun installApk(file: File) {
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        val intent = Intent(Intent.ACTION_VIEW)
-            .setDataAndType(uri, "application/vnd.android.package-archive")
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
+        runCatching {
+            val installer = context.packageManager.packageInstaller
+            val params = PackageInstaller.SessionParams(
+                PackageInstaller.SessionParams.MODE_FULL_INSTALL,
+            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                params.setRequireUserAction(
+                    PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED,
+                )
+            }
+            val sessionId = installer.createSession(params)
+            installer.openSession(sessionId).use { session ->
+                session.openWrite("update", 0, file.length()).use { out ->
+                    file.inputStream().use { input -> input.copyTo(out) }
+                    session.fsync(out)
+                }
+                val callback = Intent(InstallResultReceiver.ACTION)
+                    .setPackage(context.packageName)
+                val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        PendingIntent.FLAG_MUTABLE
+                    } else {
+                        0
+                    }
+                val pending = PendingIntent.getBroadcast(context, sessionId, callback, flags)
+                session.commit(pending.intentSender)
+            }
+        }
     }
 
     fun canInstallPackages(): Boolean =
