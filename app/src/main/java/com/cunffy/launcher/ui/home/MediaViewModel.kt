@@ -104,19 +104,25 @@ class MediaViewModel @Inject constructor(
 
     fun previous() = controller?.transportControls?.skipToPrevious()
 
-    /** Open the app that owns the current session — its own now-playing UI if it offers one. */
+    /** Open the app that owns the current session. */
     fun openApp() {
         val c = controller ?: return
-        // Prefer the session's declared activity (drops you on its player screen)…
-        c.sessionActivity?.let {
-            runCatching { it.send() }.onSuccess { return }
+        // Launch the owning app directly — a normal foreground activity start that reliably
+        // brings it up. (The session's own PendingIntent can be silently dropped by background-
+        // activity-launch rules, so we only use it as a fallback.)
+        val pkg = c.packageName
+        if (pkg != null) {
+            context.packageManager.getLaunchIntentForPackage(pkg)?.let { launch ->
+                if (runCatching {
+                        context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        true
+                    }.getOrDefault(false)
+                ) {
+                    return
+                }
+            }
         }
-        // …otherwise just launch the owning app.
-        val pkg = c.packageName ?: return
-        val launch = context.packageManager.getLaunchIntentForPackage(pkg) ?: return
-        runCatching {
-            context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        }
+        c.sessionActivity?.let { runCatching { it.send() } }
     }
 
     override fun onCleared() {
