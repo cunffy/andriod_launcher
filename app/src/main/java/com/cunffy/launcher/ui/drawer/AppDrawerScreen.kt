@@ -133,7 +133,7 @@ fun AppDrawerScreen(
                 },
                 onClear = searchViewModel::clear,
                 hint = stringResource(R.string.search_hint),
-                autoFocus = drawerOpen,
+                autoFocus = drawerOpen && settings.searchAutoFocus,
                 modifier = Modifier.weight(1f),
             )
             // Minimalist, always-present shortcut to the Play Store.

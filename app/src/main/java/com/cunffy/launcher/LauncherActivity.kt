@@ -60,26 +60,26 @@ class LauncherActivity : FragmentActivity() {
 }
 
 /**
- * When [enabled], request the highest refresh-rate mode at the current resolution; otherwise
- * release the request and let the system manage the rate (the battery-friendly default).
+ * Pin the launcher window's refresh rate: the highest mode when [enabled], otherwise the lowest
+ * (≈60Hz). Actively requesting the low mode — rather than just clearing the request — caps the
+ * launcher at a battery-friendly rate even on phones that default to 144Hz globally.
  */
 fun Activity.applyRefreshRate(enabled: Boolean) {
     val params = window.attributes
-    if (!enabled) {
-        if (params.preferredDisplayModeId != 0) {
-            window.attributes = params.apply { preferredDisplayModeId = 0 }
-        }
-        return
-    }
     val display = display ?: return
     val current = display.mode ?: return
-    val best = display.supportedModes
-        .filter {
-            it.physicalWidth == current.physicalWidth &&
-                it.physicalHeight == current.physicalHeight
-        }
-        .maxByOrNull { it.refreshRate } ?: return
-    if (best.modeId != params.preferredDisplayModeId) {
-        window.attributes = params.apply { preferredDisplayModeId = best.modeId }
+    val modes = display.supportedModes.filter {
+        it.physicalWidth == current.physicalWidth &&
+            it.physicalHeight == current.physicalHeight
+    }
+    val target = if (enabled) {
+        modes.maxByOrNull { it.refreshRate }
+    } else {
+        // Lowest mode at/above 60Hz so the UI stays usable while saving power.
+        modes.filter { it.refreshRate >= 59f }.minByOrNull { it.refreshRate }
+            ?: modes.minByOrNull { it.refreshRate }
+    } ?: return
+    if (target.modeId != params.preferredDisplayModeId) {
+        window.attributes = params.apply { preferredDisplayModeId = target.modeId }
     }
 }

@@ -110,11 +110,20 @@ class LauncherPreferences @Inject constructor(
     private val gridRowsKey = intPreferencesKey("grid_rows")
     private val homePageCountKey = intPreferencesKey("home_page_count")
     private fun gestureKey(slot: GestureSlot) = stringPreferencesKey("gesture_${slot.name}")
+    private val lastUpdateCheckKey = longPreferencesKey("last_update_check")
 
     val settings: Flow<LauncherSettings> = context.dataStore.data.map { it.toSettings() }
 
     val dockComponents: Flow<List<String>> =
         context.dataStore.data.map { it[dockKey].toComponentList() }
+
+    /** Epoch millis of the last automatic update check (0 if never), to throttle on-launch checks. */
+    val lastUpdateCheck: Flow<Long> =
+        context.dataStore.data.map { it[lastUpdateCheckKey] ?: 0L }
+
+    suspend fun setLastUpdateCheck(millis: Long) {
+        context.dataStore.edit { it[lastUpdateCheckKey] = millis }
+    }
 
     private fun Preferences.toSettings() = LauncherSettings(
         dockComponents = this[dockKey].toComponentList(),
