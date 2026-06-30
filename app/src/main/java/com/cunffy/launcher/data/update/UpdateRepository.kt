@@ -67,6 +67,11 @@ class UpdateRepository @Inject constructor(
                     PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED,
                 )
             }
+            // Android 14+ only allows silent self-updates by the app that *owns* updates. Claim
+            // ownership so that, once granted, future updates install with no prompt.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                runCatching { params.setRequestUpdateOwnership(true) }
+            }
             val sessionId = installer.createSession(params)
             installer.openSession(sessionId).use { session ->
                 session.openWrite("update", 0, file.length()).use { out ->
