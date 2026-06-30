@@ -6,7 +6,12 @@ import android.appwidget.AppWidgetProviderInfo
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -38,6 +43,8 @@ import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material3.AlertDialog
@@ -138,6 +145,7 @@ fun HomeScreen(
     var confirmRemove by remember { mutableStateOf<HomeEntry?>(null) }
     var showAppPicker by remember { mutableStateOf(false) }
     var confirmDeletePage by remember { mutableStateOf(false) }
+    var showDockEditor by remember { mutableStateOf(false) }
 
     fun launchApp(app: AppInfo) {
         val activity = context as? FragmentActivity
@@ -255,8 +263,9 @@ fun HomeScreen(
         )
         if (settings.showAtAGlance) AtAGlance(modifier = Modifier.padding(top = 8.dp))
 
-        // Step the home grid back into an "overview" while editing (RedMagic-style).
-        val editScale by animateFloatAsState(if (editMode) 0.82f else 1f, label = "editScale")
+        // Step the home grid back into an "overview" while editing (RedMagic-style) — subtle so
+        // it doesn't shrink too far.
+        val editScale by animateFloatAsState(if (editMode) 0.93f else 1f, label = "editScale")
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
@@ -303,9 +312,32 @@ fun HomeScreen(
             )
         }
 
-        if (editMode) {
-            // Keep the dock visible & interactive while editing (long-press an icon to remove
-            // it from the dock); it's hidden behind the editor panel otherwise.
+        // Normal home: media card + dock. Slides away when entering edit mode.
+        AnimatedVisibility(
+            visible = !editMode,
+            enter = fadeIn() + slideInVertically { it / 2 },
+            exit = fadeOut() + slideOutVertically { it / 2 },
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (settings.showMediaCard) MediaCard()
+                Dock(
+                    apps = dockApps,
+                    onAppClick = ::launchApp,
+                    onAppLongClick = { menuApp = it },
+                    iconSize = settings.iconSizeDp.dp,
+                )
+            }
+        }
+
+        // Edit mode: the dock only shows when you tap "Dock", and the panel pops up.
+        AnimatedVisibility(
+            visible = editMode && showDockEditor,
+            enter = fadeIn() + slideInVertically { it / 2 },
+            exit = fadeOut() + slideOutVertically { it / 2 },
+        ) {
             Dock(
                 apps = dockApps,
                 onAppClick = ::launchApp,
@@ -313,10 +345,18 @@ fun HomeScreen(
                 iconSize = settings.iconSizeDp.dp,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
+        }
+        AnimatedVisibility(
+            visible = editMode,
+            enter = fadeIn() + slideInVertically { it },
+            exit = fadeOut() + slideOutVertically { it },
+        ) {
             EditorPanel(
                 pageCount = pageCount,
                 currentPage = pagerState.currentPage,
                 canDeletePage = pageCount > 1,
+                dockShown = showDockEditor,
+                onToggleDock = { showDockEditor = !showDockEditor },
                 onJumpToPage = { pendingScrollPage = it },
                 onAddPage = {
                     viewModel.setHomePageCount(pageCount + 1)
@@ -349,19 +389,6 @@ fun HomeScreen(
                 },
                 onDone = { viewModel.setEditMode(false) },
             )
-        } else {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                if (settings.showMediaCard) MediaCard()
-                Dock(
-                    apps = dockApps,
-                    onAppClick = ::launchApp,
-                    onAppLongClick = { menuApp = it },
-                    iconSize = settings.iconSizeDp.dp,
-                )
-            }
         }
     }
 
@@ -582,6 +609,8 @@ private fun EditorPanel(
     pageCount: Int,
     currentPage: Int,
     canDeletePage: Boolean,
+    dockShown: Boolean,
+    onToggleDock: () -> Unit,
     onJumpToPage: (Int) -> Unit,
     onAddPage: () -> Unit,
     onDeleteCurrentPage: () -> Unit,
@@ -591,11 +620,12 @@ private fun EditorPanel(
     onSettings: () -> Unit,
     onDone: () -> Unit,
 ) {
+    // Frosted-glass panel over the wallpaper (translucent, white content) rather than flat grey.
     Surface(
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        tonalElevation = 4.dp,
+        color = Color.Black.copy(alpha = 0.45f),
+        contentColor = Color.White,
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
         modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
     ) {
         Column(
@@ -624,9 +654,15 @@ private fun EditorPanel(
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 SmallEditTile(Icons.Rounded.Apps, "Add icon", Modifier.weight(1f), onAddIcon)
+                SmallEditTile(
+                    if (dockShown) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                    if (dockShown) "Hide dock" else "Dock",
+                    Modifier.weight(1f),
+                    onToggleDock,
+                )
                 if (canDeletePage) {
                     SmallEditTile(
                         Icons.Rounded.Delete, "Delete page", Modifier.weight(1f), onDeleteCurrentPage,
@@ -645,13 +681,13 @@ private fun PageThumb(label: String, selected: Boolean, onClick: () -> Unit) {
     val border = if (selected) {
         BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
     } else {
-        BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
     }
     Box(
         modifier = Modifier
             .size(width = 52.dp, height = 88.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .background(Color.White.copy(alpha = if (selected) 0.22f else 0.10f))
             .border(border, RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -659,8 +695,7 @@ private fun PageThumb(label: String, selected: Boolean, onClick: () -> Unit) {
         Text(
             text = label,
             style = MaterialTheme.typography.titleMedium,
-            color = if (selected) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (selected) MaterialTheme.colorScheme.primary else Color.White,
         )
     }
 }
@@ -671,7 +706,8 @@ private fun BigEditTile(icon: ImageVector, label: String, modifier: Modifier, on
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = Color.White.copy(alpha = 0.12f),
+        contentColor = Color.White,
         modifier = modifier.height(76.dp),
     ) {
         Column(
@@ -701,13 +737,15 @@ private fun SmallEditTile(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
+            .background(Color.White.copy(alpha = 0.10f))
             .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
+            .padding(vertical = 10.dp),
     ) {
-        Icon(icon, contentDescription = label, modifier = Modifier.size(22.dp))
+        Icon(icon, contentDescription = label, modifier = Modifier.size(22.dp), tint = Color.White)
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
+            color = Color.White,
             maxLines = 1,
             modifier = Modifier.padding(top = 4.dp),
         )
