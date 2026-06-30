@@ -164,13 +164,26 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun checkForUpdates(onMessage: (String) -> Unit) = viewModelScope.launch {
+        onMessage("Checking for updates…")
         val manifest = updateRepository.checkForUpdate()
         if (manifest == null) {
             onMessage("You're on the latest version")
             return@launch
         }
-        onMessage("Downloading ${manifest.versionName}…")
+        // Without permission to install apps the installer can never appear; ask first so the
+        // download isn't wasted and the user isn't left staring at "Downloading…".
+        if (!updateRepository.canInstallPackages()) {
+            onMessage("Allow this app to install updates, then tap update again")
+            updateRepository.requestInstallPermission()
+            return@launch
+        }
+        onMessage("Downloading ${manifest.versionName}… (~45 MB)")
         val apk = updateRepository.downloadApk(manifest)
-        if (apk != null) updateRepository.installApk(apk) else onMessage("Download failed")
+        if (apk == null) {
+            onMessage("Download failed — check your connection and try again")
+            return@launch
+        }
+        onMessage("Starting install…")
+        updateRepository.installApk(apk)
     }
 }

@@ -61,13 +61,7 @@ class UpdateRepository @Inject constructor(
         // without it every update shows the system installer. Send them to grant it, then return
         // so they can re-run the update.
         if (!canInstallPackages()) {
-            runCatching {
-                context.startActivity(
-                    Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-                        .setData(android.net.Uri.parse("package:${context.packageName}"))
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                )
-            }
+            requestInstallPermission()
             return
         }
         runCatching {
@@ -102,6 +96,17 @@ class UpdateRepository @Inject constructor(
                 val pending = PendingIntent.getBroadcast(context, sessionId, callback, flags)
                 session.commit(pending.intentSender)
             }
+        }
+    }
+
+    /** Send the user to the "install unknown apps" screen for this launcher. */
+    fun requestInstallPermission() {
+        runCatching {
+            context.startActivity(
+                Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                    .setData(android.net.Uri.parse("package:${context.packageName}"))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
         }
     }
 
