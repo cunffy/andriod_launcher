@@ -304,6 +304,15 @@ fun HomeScreen(
         }
 
         if (editMode) {
+            // Keep the dock visible & interactive while editing (long-press an icon to remove
+            // it from the dock); it's hidden behind the editor panel otherwise.
+            Dock(
+                apps = dockApps,
+                onAppClick = ::launchApp,
+                onAppLongClick = { menuApp = it },
+                iconSize = settings.iconSizeDp.dp,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
             EditorPanel(
                 pageCount = pageCount,
                 currentPage = pagerState.currentPage,

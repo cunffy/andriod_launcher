@@ -57,6 +57,19 @@ class UpdateRepository @Inject constructor(
      * requires confirmation, [InstallResultReceiver] surfaces the one-tap dialog as a fallback.
      */
     fun installApk(file: File) {
+        // Silent installs are impossible until the user lets this app install unknown apps;
+        // without it every update shows the system installer. Send them to grant it, then return
+        // so they can re-run the update.
+        if (!canInstallPackages()) {
+            runCatching {
+                context.startActivity(
+                    Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                        .setData(android.net.Uri.parse("package:${context.packageName}"))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+            }
+            return
+        }
         runCatching {
             val installer = context.packageManager.packageInstaller
             val params = PackageInstaller.SessionParams(
