@@ -196,6 +196,12 @@ fun SettingsScreen(
                 checked = settings.clock24h,
                 onCheckedChange = viewModel::setClock24h,
             )
+            SwitchRow(
+                title = "High refresh rate",
+                subtitle = "Smoother animations, but uses more battery",
+                checked = settings.highRefreshRate,
+                onCheckedChange = viewModel::setHighRefreshRate,
+            )
 
             SectionHeader(stringResource(R.string.settings_badges))
             SwitchRow(

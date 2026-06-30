@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -209,13 +211,23 @@ private fun WidgetGroupCard(
                     modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    group.widgets.forEach { widget ->
-                        WidgetRow(
-                            label = labelOf(widget),
-                            sizeLabel = "${widget.cellWidth()}×${widget.cellHeight()}",
-                            preview = previewOf(widget),
-                            onClick = { onPick(widget) },
-                        )
+                    // Two-up grid of preview tiles — more scannable than a tall single column.
+                    group.widgets.chunked(2).forEach { pair ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            pair.forEach { widget ->
+                                WidgetTile(
+                                    label = labelOf(widget),
+                                    sizeLabel = "${widget.cellWidth()}×${widget.cellHeight()}",
+                                    preview = previewOf(widget),
+                                    onClick = { onPick(widget) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            if (pair.size == 1) Spacer(Modifier.weight(1f))
+                        }
                     }
                 }
             }
@@ -224,23 +236,24 @@ private fun WidgetGroupCard(
 }
 
 @Composable
-private fun WidgetRow(
+private fun WidgetTile(
     label: String,
     sizeLabel: String,
     preview: Drawable?,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(110.dp)
+                    .height(96.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
@@ -250,24 +263,27 @@ private fun WidgetRow(
                         painter = rememberDrawablePainter(preview),
                         contentDescription = label,
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
+                        modifier = Modifier.fillMaxSize().padding(10.dp),
+                    )
+                } else {
+                    Text(
+                        text = label.take(1).uppercase(),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = sizeLabel,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "$sizeLabel grid",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

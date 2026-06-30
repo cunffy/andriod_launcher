@@ -58,6 +58,8 @@ data class LauncherSettings(
     /** Drawer background opacity, 50–100 %. */
     val drawerOpacity: Int = 97,
     val searchAutoFocus: Boolean = false,
+    /** Force the display's max refresh rate while the launcher is visible (off saves battery). */
+    val highRefreshRate: Boolean = false,
     val clock24h: Boolean = false,
     val gridColumns: Int = 4,
     val gridRows: Int = 5,
@@ -99,6 +101,7 @@ class LauncherPreferences @Inject constructor(
     private val homeLabelsKey = booleanPreferencesKey("home_labels")
     private val drawerSortKey = stringPreferencesKey("drawer_sort")
     private val searchAutoFocusKey = booleanPreferencesKey("search_autofocus")
+    private val highRefreshKey = booleanPreferencesKey("high_refresh_rate")
     private val clock24hKey = booleanPreferencesKey("clock_24h")
     private val gridColumnsKey = intPreferencesKey("grid_columns")
     private val gridRowsKey = intPreferencesKey("grid_rows")
@@ -138,6 +141,7 @@ class LauncherPreferences @Inject constructor(
         drawerColumns = this[drawerColumnsKey] ?: 4,
         drawerOpacity = this[drawerOpacityKey] ?: 97,
         searchAutoFocus = this[searchAutoFocusKey] ?: false,
+        highRefreshRate = this[highRefreshKey] ?: false,
         clock24h = this[clock24hKey] ?: false,
         gridColumns = this[gridColumnsKey] ?: 4,
         gridRows = this[gridRowsKey] ?: 5,
@@ -248,6 +252,10 @@ class LauncherPreferences @Inject constructor(
 
     suspend fun setSearchAutoFocus(enabled: Boolean) {
         context.dataStore.edit { it[searchAutoFocusKey] = enabled }
+    }
+
+    suspend fun setHighRefreshRate(enabled: Boolean) {
+        context.dataStore.edit { it[highRefreshKey] = enabled }
     }
 
     suspend fun setClock24h(enabled: Boolean) {

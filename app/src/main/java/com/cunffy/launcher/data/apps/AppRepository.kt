@@ -10,10 +10,12 @@ import android.os.UserManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,13 +56,22 @@ class AppRepository @Inject constructor(
         ) = reload()
     }
 
+    private var reloadJob: Job? = null
+
     init {
         launcherApps.registerCallback(callback)
-        reload()
+        // First load immediately; later package-change callbacks are debounced.
+        scope.launch { _apps.value = loadAll() }
     }
 
     private fun reload() {
-        scope.launch { _apps.value = loadAll() }
+        // Coalesce bursts of package-change callbacks (e.g. the Play Store updating many apps
+        // in the background) into a single reload instead of rebuilding the list each time.
+        reloadJob?.cancel()
+        reloadJob = scope.launch {
+            delay(500)
+            _apps.value = loadAll()
+        }
     }
 
     private suspend fun loadAll(): List<AppInfo> = coroutineScope {

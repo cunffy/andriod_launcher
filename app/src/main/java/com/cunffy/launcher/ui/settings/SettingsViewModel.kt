@@ -111,6 +111,10 @@ class SettingsViewModel @Inject constructor(
         preferences.setSearchAutoFocus(enabled)
     }
 
+    fun setHighRefreshRate(enabled: Boolean) = viewModelScope.launch {
+        preferences.setHighRefreshRate(enabled)
+    }
+
     fun setClock24h(enabled: Boolean) = viewModelScope.launch { preferences.setClock24h(enabled) }
 
     fun setGridColumns(columns: Int) = viewModelScope.launch { preferences.setGridColumns(columns) }

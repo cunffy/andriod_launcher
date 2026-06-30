@@ -7,9 +7,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateOf
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
+import com.cunffy.launcher.data.prefs.LauncherPreferences
 import com.cunffy.launcher.ui.LauncherRoot
 import com.cunffy.launcher.ui.theme.LauncherThemeGate
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Single-activity host. Because the activity is the system HOME target with
@@ -20,13 +26,23 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class LauncherActivity : FragmentActivity() {
 
+    @Inject lateinit var preferences: LauncherPreferences
+
     // Incremented each time HOME is pressed so Compose can react and collapse the drawer.
     private val homePressTick = mutableStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        preferHighRefreshRate()
+        // Honor the high-refresh-rate preference (off by default — forcing the panel to its max
+        // rate on a mostly-static home screen wastes battery, especially on 144Hz RedMagic
+        // displays). The system otherwise ramps the rate up during animations on its own.
+        lifecycleScope.launch {
+            preferences.settings
+                .map { it.highRefreshRate }
+                .distinctUntilChanged()
+                .collect { applyRefreshRate(it) }
+        }
         setContent {
             LauncherThemeGate {
                 LauncherRoot(homePressTick = homePressTick.value)
@@ -44,10 +60,17 @@ class LauncherActivity : FragmentActivity() {
 }
 
 /**
- * Asks the system for the highest refresh-rate display mode at the current resolution, so the
- * launcher animates at 90/120/144 Hz on capable screens instead of being capped at 60.
+ * When [enabled], request the highest refresh-rate mode at the current resolution; otherwise
+ * release the request and let the system manage the rate (the battery-friendly default).
  */
-fun Activity.preferHighRefreshRate() {
+fun Activity.applyRefreshRate(enabled: Boolean) {
+    val params = window.attributes
+    if (!enabled) {
+        if (params.preferredDisplayModeId != 0) {
+            window.attributes = params.apply { preferredDisplayModeId = 0 }
+        }
+        return
+    }
     val display = display ?: return
     val current = display.mode ?: return
     val best = display.supportedModes
@@ -56,7 +79,7 @@ fun Activity.preferHighRefreshRate() {
                 it.physicalHeight == current.physicalHeight
         }
         .maxByOrNull { it.refreshRate } ?: return
-    if (best.modeId != current.modeId) {
-        window.attributes = window.attributes.apply { preferredDisplayModeId = best.modeId }
+    if (best.modeId != params.preferredDisplayModeId) {
+        window.attributes = params.apply { preferredDisplayModeId = best.modeId }
     }
 }
