@@ -34,11 +34,15 @@ class SettingsViewModel @Inject constructor(
     private val customizationRepository: CustomizationRepository,
     private val backupManager: BackupManager,
     private val updateRepository: UpdateRepository,
+    wallpaperColorProvider: com.cunffy.launcher.data.theme.WallpaperColorProvider,
     appCatalog: AppCatalog,
 ) : ViewModel() {
 
     val settings = preferences.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LauncherSettings())
+
+    /** Wallpaper's reported color, or null when the (often live) wallpaper publishes none. */
+    val wallpaperColor = wallpaperColorProvider.primaryColor
 
     val allApps = appCatalog.allApps
 
@@ -73,6 +77,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setAccentFromWallpaper(enabled: Boolean) = viewModelScope.launch {
         preferences.setAccentFromWallpaper(enabled)
+    }
+
+    fun setCustomAccentColor(color: Int) = viewModelScope.launch {
+        preferences.setCustomAccentColor(color)
     }
 
     fun setShowAtAGlance(show: Boolean) = viewModelScope.launch {

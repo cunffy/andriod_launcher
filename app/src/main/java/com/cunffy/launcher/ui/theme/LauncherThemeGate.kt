@@ -47,14 +47,3 @@ fun LauncherThemeGate(
         content = content,
     )
 }
-
-/**
- * The accent color to use when dynamic color is off: the wallpaper's reported color when that
- * option is on and available, otherwise the chosen preset.
- */
-fun accentSeed(settings: LauncherSettings, wallpaperColor: Int?): Int =
-    if (settings.accentFromWallpaper && wallpaperColor != null) {
-        wallpaperColor
-    } else {
-        settings.accentPreset.argb()
-    }

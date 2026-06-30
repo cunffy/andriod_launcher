@@ -43,6 +43,11 @@ class WallpaperColorProvider @Inject constructor(
     fun current(): Int? = _primaryColor.value ?: readPrimary().also { _primaryColor.value = it }
 
     private fun readPrimary(): Int? = runCatching {
-        wallpaperManager.getWallpaperColors(WallpaperManager.FLAG_SYSTEM)?.primaryColor?.toArgb()
+        // Home-screen wallpaper first, then the lock-screen wallpaper as a fallback. Live
+        // wallpapers only report colors if they implement onComputeColors — many OEM ones
+        // don't, in which case this stays null and the UI offers a manual color picker.
+        val colors = wallpaperManager.getWallpaperColors(WallpaperManager.FLAG_SYSTEM)
+            ?: wallpaperManager.getWallpaperColors(WallpaperManager.FLAG_LOCK)
+        colors?.primaryColor?.toArgb()
     }.getOrNull()
 }

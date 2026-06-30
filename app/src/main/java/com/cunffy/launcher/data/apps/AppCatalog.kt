@@ -6,7 +6,7 @@ import com.cunffy.launcher.data.icons.IconResolver
 import com.cunffy.launcher.data.prefs.LauncherPreferences
 import com.cunffy.launcher.data.theme.WallpaperColorProvider
 import com.cunffy.launcher.ui.components.IconCache
-import com.cunffy.launcher.ui.theme.argb
+import com.cunffy.launcher.ui.theme.accentSeed
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,15 +51,12 @@ class AppCatalog @Inject constructor(
     ) { apps, customs, settings, wallpaperColor ->
         // Themed-icon tint: our accent (preset or wallpaper color) when not using system dynamic
         // color; null means fall back to the system Material You accent.
-        val themedTint: Int? = if (settings.themedIcons && !settings.dynamicColor) {
-            if (settings.accentFromWallpaper) {
-                wallpaperColor ?: settings.accentPreset.argb()
+        val themedTint: Int? =
+            if (settings.themedIcons && !settings.dynamicColor) {
+                accentSeed(settings, wallpaperColor)
             } else {
-                settings.accentPreset.argb()
+                null
             }
-        } else {
-            null
-        }
         apps.map { base ->
             val c = customs[base.componentKey]
             val category = c?.categoryOverride

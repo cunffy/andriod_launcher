@@ -7,9 +7,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -59,6 +64,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val iconPacks by viewModel.iconPacks.collectAsStateWithLifecycle()
+    val wallpaperColor by viewModel.wallpaperColor.collectAsStateWithLifecycle()
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
@@ -107,14 +113,31 @@ fun SettingsScreen(
             if (!settings.dynamicColor) {
                 SwitchRow(
                     title = "Use wallpaper colors",
-                    subtitle = "Theme from your wallpaper — works with live wallpapers",
+                    subtitle = "Theme from your wallpaper when it reports its colors",
                     checked = settings.accentFromWallpaper,
                     onCheckedChange = viewModel::setAccentFromWallpaper,
                 )
-                if (!settings.accentFromWallpaper) {
+                val wallpaperWorks = settings.accentFromWallpaper && wallpaperColor != null
+                if (settings.accentFromWallpaper && wallpaperColor == null) {
+                    Text(
+                        text = "This wallpaper doesn't report its colors (common for live " +
+                            "wallpapers) — pick a color below instead.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                }
+                if (!wallpaperWorks) {
                     AccentPresetRow(
                         current = settings.accentPreset,
-                        onSelect = viewModel::setAccentPreset,
+                        onSelect = {
+                            viewModel.setAccentPreset(it)
+                            viewModel.setCustomAccentColor(0)
+                        },
+                    )
+                    AccentColorPicker(
+                        current = settings.customAccentColor,
+                        onPick = viewModel::setCustomAccentColor,
                     )
                 }
             }
@@ -415,6 +438,42 @@ private fun IconShapeRow(current: IconShape, onSelect: (IconShape) -> Unit) {
             }
         }
     }
+}
+
+/** A hue slider that produces any accent color — the reliable manual theme picker. */
+@Composable
+private fun AccentColorPicker(current: Int, onPick: (Int) -> Unit) {
+    var hue by remember(current) { mutableStateOf(if (current != 0) hueOf(current) else 210f) }
+    val color = androidx.compose.ui.graphics.Color(seedFromHue(hue))
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(color),
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = if (current != 0) "Custom color" else "Custom color (tap to use)",
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        }
+        Slider(
+            value = hue,
+            valueRange = 0f..360f,
+            onValueChange = { hue = it; onPick(seedFromHue(it)) },
+        )
+    }
+}
+
+private fun seedFromHue(hue: Float): Int =
+    android.graphics.Color.HSVToColor(floatArrayOf(hue.coerceIn(0f, 360f), 0.65f, 0.85f))
+
+private fun hueOf(color: Int): Float {
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(color, hsv)
+    return hsv[0]
 }
 
 @Composable
