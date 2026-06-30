@@ -75,16 +75,21 @@ fun HomeItemView(
     val baseX = entry.item.cellX * cellWpx
     val baseY = entry.item.cellY * cellHpx
 
-    // Jiggle + slight shrink while editing, so it clearly feels like edit mode.
-    val wobble = rememberInfiniteTransition(label = "wobble")
-    val swing by wobble.animateFloat(
-        initialValue = -2f,
-        targetValue = 2f,
-        animationSpec = infiniteRepeatable(tween(150), RepeatMode.Reverse),
-        label = "swing",
-    )
-    val dir = if (entry.item.id % 2L == 0L) 1f else -1f
-    val angle = if (editMode) swing * dir else 0f
+    // Jiggle + slight shrink while editing. The infinite animation is only composed in edit
+    // mode — otherwise it would keep requesting frames forever and stop the home screen from
+    // ever going idle, which drains the battery badly.
+    val angle = if (editMode) {
+        val wobble = rememberInfiniteTransition(label = "wobble")
+        val swing by wobble.animateFloat(
+            initialValue = -2f,
+            targetValue = 2f,
+            animationSpec = infiniteRepeatable(tween(150), RepeatMode.Reverse),
+            label = "swing",
+        )
+        swing * if (entry.item.id % 2L == 0L) 1f else -1f
+    } else {
+        0f
+    }
     val itemScale = if (editMode) 0.94f else 1f
 
     Box(
