@@ -60,31 +60,35 @@ class LauncherActivity : FragmentActivity() {
 }
 
 /**
- * Hint the launcher window's refresh rate: the panel's max when [enabled], otherwise its lowest
- * (≈60Hz). We use [WindowManager.LayoutParams.preferredRefreshRate] rather than pinning a full
- * display mode so it cooperates with the system's "auto refresh rate" instead of fighting it —
- * with high-refresh off and a now-idle home screen, the system can keep the rate low.
+ * Refresh-rate policy for the launcher window. When high refresh is OFF we impose *nothing* —
+ * no mode pin and no rate hint — so the system's own "auto refresh rate" fully manages it and
+ * can idle the (static) home screen down. Crucially we never pin a display *mode*: pinning a
+ * mode can latch some panels (e.g. RedMagic) into that rate device-wide until reboot. When the
+ * user opts into high refresh we only add a soft max-rate hint.
  */
 fun Activity.applyRefreshRate(enabled: Boolean) {
-    val display = display ?: return
-    val current = display.mode ?: return
-    val rates = display.supportedModes
-        .filter {
-            it.physicalWidth == current.physicalWidth &&
-                it.physicalHeight == current.physicalHeight
-        }
-        .map { it.refreshRate }
-    if (rates.isEmpty()) return
-    val rate = if (enabled) {
-        rates.max()
-    } else {
-        rates.filter { it >= 59f }.minOrNull() ?: rates.min()
-    }
     val params = window.attributes
-    if (params.preferredRefreshRate != rate || params.preferredDisplayModeId != 0) {
-        params.preferredRefreshRate = rate
-        // Don't also pin a mode — the rate hint above lets auto-refresh do its job.
+    // Always clear any pinned mode (undoes the behavior of older builds).
+    var changed = false
+    if (params.preferredDisplayModeId != 0) {
         params.preferredDisplayModeId = 0
-        window.attributes = params
+        changed = true
     }
+    val targetRate = if (enabled) {
+        val display = display ?: return
+        val current = display.mode ?: return
+        display.supportedModes
+            .filter {
+                it.physicalWidth == current.physicalWidth &&
+                    it.physicalHeight == current.physicalHeight
+            }
+            .maxOfOrNull { it.refreshRate } ?: 0f
+    } else {
+        0f // no preference — let the system's auto refresh decide.
+    }
+    if (params.preferredRefreshRate != targetRate) {
+        params.preferredRefreshRate = targetRate
+        changed = true
+    }
+    if (changed) window.attributes = params
 }
