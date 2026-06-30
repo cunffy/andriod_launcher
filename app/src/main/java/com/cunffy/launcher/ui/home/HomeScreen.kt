@@ -6,9 +6,13 @@ import android.appwidget.AppWidgetProviderInfo
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -17,11 +21,13 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -53,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -248,9 +255,14 @@ fun HomeScreen(
         )
         if (settings.showAtAGlance) AtAGlance(modifier = Modifier.padding(top = 8.dp))
 
+        // Step the home grid back into an "overview" while editing (RedMagic-style).
+        val editScale by animateFloatAsState(if (editMode) 0.82f else 1f, label = "editScale")
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .graphicsLayer { scaleX = editScale; scaleY = editScale },
         ) { page ->
             HomeGridPage(
                 entries = desktop.filter { it.item.page == page },
@@ -283,80 +295,64 @@ fun HomeScreen(
             )
         }
 
-        PageIndicator(
-            pageCount = pageCount,
-            currentPage = pagerState.currentPage,
-            modifier = Modifier.padding(vertical = 6.dp),
-        )
-
-        if (editMode) {
-            Text(
-                text = "Drag to move • ✕ to remove • drag past the edge to change page",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.85f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
+        if (!editMode) {
+            PageIndicator(
+                pageCount = pageCount,
+                currentPage = pagerState.currentPage,
+                modifier = Modifier.padding(vertical = 6.dp),
             )
-            Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                tonalElevation = 4.dp,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            ) {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
-                ) {
-                    EditAction(Icons.Rounded.Apps, "Add Icon") { showAppPicker = true }
-                    EditAction(Icons.Rounded.AddCircleOutline, "Add page") {
-                        // Add a real, persisted page and jump to it.
-                        viewModel.setHomePageCount(pageCount + 1)
-                        pendingScrollPage = pageCount
-                    }
-                    EditAction(Icons.Rounded.Widgets, "Widget", onClick = ::pickWidget)
-                    EditAction(Icons.Rounded.Wallpaper, "Wallpaper") {
-                        context.startActivity(
-                            Intent.createChooser(
-                                Intent(Intent.ACTION_SET_WALLPAPER),
-                                "Wallpaper",
-                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                        )
-                    }
-                    if (pageCount > 1) {
-                        EditAction(Icons.Rounded.Delete, "Delete page") {
-                            val onThisPage = desktop.count { it.item.page == pagerState.currentPage }
-                            if (onThisPage == 0) {
-                                val p = pagerState.currentPage
-                                viewModel.deletePage(p)
-                                pendingScrollPage = (p - 1).coerceAtLeast(0)
-                            } else {
-                                confirmDeletePage = true
-                            }
-                        }
-                    }
-                    EditAction(Icons.Rounded.Settings, "Settings") {
-                        context.startActivity(
-                            Intent(context, SettingsActivity::class.java)
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                        )
-                    }
-                    EditAction(Icons.Rounded.Check, "Done") { viewModel.setEditMode(false) }
-                }
-            }
         }
 
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            if (settings.showMediaCard) MediaCard()
-            Dock(
-                apps = dockApps,
-                onAppClick = ::launchApp,
-                onAppLongClick = { menuApp = it },
-                iconSize = settings.iconSizeDp.dp,
+        if (editMode) {
+            EditorPanel(
+                pageCount = pageCount,
+                currentPage = pagerState.currentPage,
+                canDeletePage = pageCount > 1,
+                onJumpToPage = { pendingScrollPage = it },
+                onAddPage = {
+                    viewModel.setHomePageCount(pageCount + 1)
+                    pendingScrollPage = pageCount
+                },
+                onDeleteCurrentPage = {
+                    val p = pagerState.currentPage
+                    if (desktop.count { it.item.page == p } == 0) {
+                        viewModel.deletePage(p)
+                        pendingScrollPage = (p - 1).coerceAtLeast(0)
+                    } else {
+                        confirmDeletePage = true
+                    }
+                },
+                onAddIcon = { showAppPicker = true },
+                onWidgets = ::pickWidget,
+                onWallpaper = {
+                    context.startActivity(
+                        Intent.createChooser(
+                            Intent(Intent.ACTION_SET_WALLPAPER),
+                            "Wallpaper",
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                },
+                onSettings = {
+                    context.startActivity(
+                        Intent(context, SettingsActivity::class.java)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                },
+                onDone = { viewModel.setEditMode(false) },
             )
+        } else {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (settings.showMediaCard) MediaCard()
+                Dock(
+                    apps = dockApps,
+                    onAppClick = ::launchApp,
+                    onAppLongClick = { menuApp = it },
+                    iconSize = settings.iconSizeDp.dp,
+                )
+            }
         }
     }
 
@@ -568,21 +564,143 @@ private fun HomeGridPage(
     }
 }
 
-/** One labelled icon button in the edit toolbar (Add page, Widget, Wallpaper, …). */
+/**
+ * RedMagic-style edit panel docked at the bottom: a strip of page thumbnails (jump / add /
+ * delete), big Wallpaper & Widgets tiles, and a row of secondary actions.
+ */
 @Composable
-private fun EditAction(icon: ImageVector, label: String, onClick: () -> Unit) {
+private fun EditorPanel(
+    pageCount: Int,
+    currentPage: Int,
+    canDeletePage: Boolean,
+    onJumpToPage: (Int) -> Unit,
+    onAddPage: () -> Unit,
+    onDeleteCurrentPage: () -> Unit,
+    onAddIcon: () -> Unit,
+    onWidgets: () -> Unit,
+    onWallpaper: () -> Unit,
+    onSettings: () -> Unit,
+    onDone: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        tonalElevation = 4.dp,
+        modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                repeat(pageCount) { index ->
+                    PageThumb(
+                        label = "${index + 1}",
+                        selected = index == currentPage,
+                        onClick = { onJumpToPage(index) },
+                    )
+                }
+                PageThumb(label = "+", selected = false, onClick = onAddPage)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                BigEditTile(Icons.Rounded.Wallpaper, "Wallpaper", Modifier.weight(1f), onWallpaper)
+                BigEditTile(Icons.Rounded.Widgets, "Widgets", Modifier.weight(1f), onWidgets)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                SmallEditTile(Icons.Rounded.Apps, "Add icon", Modifier.weight(1f), onAddIcon)
+                if (canDeletePage) {
+                    SmallEditTile(
+                        Icons.Rounded.Delete, "Delete page", Modifier.weight(1f), onDeleteCurrentPage,
+                    )
+                }
+                SmallEditTile(Icons.Rounded.Settings, "Settings", Modifier.weight(1f), onSettings)
+                SmallEditTile(Icons.Rounded.Check, "Done", Modifier.weight(1f), onDone)
+            }
+        }
+    }
+}
+
+/** A page card in the editor strip; "+" adds a page. */
+@Composable
+private fun PageThumb(label: String, selected: Boolean, onClick: () -> Unit) {
+    val border = if (selected) {
+        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+    } else {
+        BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    }
+    Box(
+        modifier = Modifier
+            .size(width = 52.dp, height = 88.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(border, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleMedium,
+            color = if (selected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Large primary editor action (Wallpaper / Widgets). */
+@Composable
+private fun BigEditTile(icon: ImageVector, label: String, modifier: Modifier, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        modifier = modifier.height(76.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Icon(icon, contentDescription = label, modifier = Modifier.size(26.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
+    }
+}
+
+/** Smaller secondary editor action. */
+@Composable
+private fun SmallEditTile(
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(vertical = 8.dp),
     ) {
-        Icon(icon, contentDescription = label)
+        Icon(icon, contentDescription = label, modifier = Modifier.size(22.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(top = 2.dp),
+            maxLines = 1,
+            modifier = Modifier.padding(top = 4.dp),
         )
     }
 }
