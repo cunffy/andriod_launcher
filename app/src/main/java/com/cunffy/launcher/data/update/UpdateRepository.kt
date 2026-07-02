@@ -46,8 +46,26 @@ class UpdateRepository @Inject constructor(
     }
 
     suspend fun downloadApk(manifest: UpdateManifest): File? {
+        cleanupDownloads()
         val target = File(context.cacheDir, "updates/update-${manifest.versionCode}.apk")
         return if (Http.download(manifest.apkUrl, target)) target else null
+    }
+
+    /**
+     * Deletes leftover update APKs (~45 MB each — before this cleanup existed, one per ever-
+     * installed release accumulated in cache) and abandons any stale installer sessions of
+     * ours, which each stage another copy of the APK.
+     */
+    fun cleanupDownloads() {
+        runCatching {
+            File(context.cacheDir, "updates").listFiles()?.forEach { it.delete() }
+        }
+        runCatching {
+            val installer = context.packageManager.packageInstaller
+            installer.mySessions.forEach { info ->
+                runCatching { installer.abandonSession(info.sessionId) }
+            }
+        }
     }
 
     /**
@@ -97,6 +115,8 @@ class UpdateRepository @Inject constructor(
                 session.commit(pending.intentSender)
             }
         }
+        // The session holds its own copy of the bytes once committed; the download is dead weight.
+        runCatching { file.delete() }
     }
 
     /** Send the user to the "install unknown apps" screen for this launcher. */

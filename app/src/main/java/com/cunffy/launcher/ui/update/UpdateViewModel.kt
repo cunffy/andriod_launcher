@@ -38,6 +38,11 @@ class UpdateViewModel @Inject constructor(
         if (checked) return
         checked = true
         viewModelScope.launch {
+            // Reclaim leftover update APKs from cache every launch (cheap; a directory listing
+            // when there's nothing to delete), regardless of the network-check throttle below.
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                updateRepository.cleanupDownloads()
+            }
             val now = System.currentTimeMillis()
             val last = preferences.lastUpdateCheck.first()
             if (now - last < CHECK_INTERVAL_MS) return@launch
